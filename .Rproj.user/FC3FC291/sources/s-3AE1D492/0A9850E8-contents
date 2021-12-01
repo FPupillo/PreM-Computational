@@ -1,0 +1,350 @@
+#------------------------------------------------------------------------------#
+# Script to make plots for PREMUP studies
+# created: "Mon Sep 13 11:27:53 2021"
+# Authors: Francesco Pupillo & Javier Ortiz-Tudela
+# Goethe University Frankfurt
+#------------------------------------------------------------------------------#
+rm(list=ls())
+
+
+# load libraries
+library(dplyr)
+library(lme4)
+library(ggplot2)
+library(car)
+
+cd<-getwd()
+setwd("premup-three")
+
+# in this dataset, there are 313 old items. by 30 participants, there are 9360 trials. 
+
+Datalong<-read.csv2("outputs/group_level/share/group_task-rec.csv",sep=";",
+                    header=T,stringsAsFactors=FALSE)
+# select only old trials
+Datalong<-Datalong[!is.na(Datalong$OvsN),]
+Datalong<-Datalong[(Datalong$OvsN==1),]
+
+# exclude fillers. No fillers here
+Datalong<-Datalong[Datalong$fillers==0,]
+
+# exclude participant
+excl <- c(3,13,38,36,39,41,42,43,47,48,52,58,60,61,65,68,69,71,72)
+
+Datalong<-Datalong[!Datalong$participant %in% excl, ]
+
+# rename the levels
+# convert the factors variables
+Datalong$PE_level<-as.factor(Datalong$PE_level)
+Datalong$session<-as.factor(Datalong$session)
+
+levels(Datalong$PE_level)<-list("Low"=0.10, "Weak"=0.30, "Flat" = 0.50, "Moderate" = 0.70, "High"=0.90)
+levels(Datalong$session)<-c("Immediate", "Delayed")
+
+#------------------------------------------------------------------------------#
+#                 plot observed
+#------------------------------------------------------------------------------#
+
+# create aggregated dataframe
+# aggregate data by session, condition, participants
+data_agg<-Datalong %>%
+  group_by(session, PE_level, participant) %>%
+  dplyr::summarise(id_acc = mean(id_acc, na.rm = T))
+
+
+# congert the factors variables
+data_agg$PE_level<-as.factor(data_agg$PE_level)
+data_agg$session<-as.factor(data_agg$session)
+
+# rename the levels
+levels(data_agg$PE_level)<-c("Low", "Weak","Flat", "Moderate", "High")
+levels(data_agg$session)<-c("Immediate", "Delayed")
+
+# get within participant SE
+# a <- Rmisc::summarySEwithin(data_agg,
+#                                measurevar = "id_acc",
+#                                withinvars = "PE_level",
+#                                betweenvars = "session",
+#                                idvar = "participant")
+dat_summary <- data_agg %>% 
+  group_by(session, PE_level) %>% 
+  summarise(n = n(),
+            sd = sd(id_acc),
+            se = sqrt(var(id_acc)/length(id_acc)),
+            ci = se * qt(.95/2 + .5, n-1),
+            id_acc = mean(id_acc))
+
+# dat_summary <- data_agg %>% 
+#   group_by(session, PE_level) %>% 
+#   summarise(n = n(),
+#             sd = sd(id_acc),
+#             se = sqrt(var(id_acc)/length(id_acc)),
+#             ci = se * qnorm(0.975)/sqrt(n),
+#             id_acc = mean(id_acc))
+
+# plot observed
+# basic plot on the aggregated values
+ggplot(data_agg, aes(PE_level, id_acc))+ 
+  # the error bars on the dat_summary dataset, which has the standard errors
+  # within-participants
+  geom_errorbar(aes(y = id_acc, ymin = id_acc - ci, ymax = id_acc + ci),
+                color = "black", width = 0.10, size =1, data=dat_summary)+
+  # now, we come back to the trial level dataframe to get the individual lines
+  geom_line(data = Datalong, aes(PE_level, id_acc,group = participant), 
+            size=1, alpha=0.2, stat="summary")+
+  # finally, we plot the average lines
+  geom_line( data = dat_summary,aes(PE_level, id_acc, 
+                                    # specify the group = in our case,
+                                    # all points have to be connected
+                                    # and thus group=1
+                                    group=1), 
+                                    size=1, stat="summary")+
+  facet_grid(.~session)+
+  theme(strip.text.x = element_text(size = 13))+ 
+  ylim(c(0,1))+
+  ylab("% recognition")+
+  xlab("PE Level")
+
+#------------------------------------------------------------------------------#
+#                             plot predicted
+#------------------------------------------------------------------------------#
+
+# let's set the contrasts
+contrasts(Datalong$PE_level)<-contr.poly(5)
+
+# test for a quadratic trend: u-saped/ inverted u shaped
+contrast2<-c(2,-1,-2,-1,2)
+# linear
+contrast1<-c(-2,-1,0,1,2)
+
+contrasts(Datalong$PE_level)<-cbind(contrast1, contrast2)
+
+# fit the model
+model      <-glmer(id_acc~PE_level * session + (1|participant), data= Datalong, family=binomial, 
+                    control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)))
+Anova(model)
+# dropping the session by PE interaction
+model_red<-glmer(id_acc~PE_level+session+(1|participant), 
+                 family=binomial(), data= Datalong,
+                 control=glmerControl(optimizer="bobyqa",
+                                      optCtrl=list(maxfun=100000)))
+# get predicted values for each PE datapoint
+# first, extract the coefficients
+intercept<-fixef(model_red)[1]
+
+intercept_se<-summary(model_red)$coefficients[5]
+  
+linear_comp<-fixef(model_red)[2]
+
+linear_comp_se<-summary(model_red)$coefficients[6]
+
+quad_comp<-fixef(model_red)[3]
+
+quad_comp_se<-summary(model_red)$coefficients[7]
+
+delayed_ses<-fixef(model_red)[6]
+
+#delayed_ses_se<-summary(model_red)$coefficients[8]
+
+# return to the default contrasts
+#attr(Datalong$PE_level,"contrasts")<-NULL
+
+# now the random effect
+#rand_ef<-ranef(model_red)$participant
+
+#model_red_notrend<-glmer(id_acc~PE_level+session+(1+session|participant), 
+                # family=binomial(), data= Datalong,
+                 #control=glmerControl(optimizer="bobyqa",
+                                    #  optCtrl=list(maxfun=100000)))
+
+
+# now create predicted. Initialise variable
+dat_summary$predicted<-NA
+
+# standard error
+dat_summary$predicted_se<-NA
+
+for (n in 1:nrow(dat_summary)){
+  # if this is the immediate recognition
+  if (dat_summary$session[n]=="Immediate"){
+    #if PE is low
+    if(dat_summary$PE_level[n]=="Low"){
+      dat_summary$predicted[n]<-intercept-linear_comp*2+quad_comp*2
+      dat_summary$predicted_se[n]<-intercept_se+linear_comp_se+quad_comp_se
+    }else if(dat_summary$PE_level[n]=="Weak"){
+      dat_summary$predicted[n]<-intercept-linear_comp-quad_comp
+      dat_summary$predicted_se[n]<-intercept_se+quad_comp_se
+    }else if(dat_summary$PE_level[n]=="Flat"){
+      dat_summary$predicted[n]<-intercept+linear_comp*0-quad_comp*2
+      dat_summary$predicted_se[n]<-intercept_se+quad_comp_se
+    }else if(dat_summary$PE_level[n]=="Moderate"){
+      dat_summary$predicted[n]<-intercept+linear_comp-quad_comp
+      dat_summary$predicted_se[n]<-intercept_se+quad_comp_se
+    }else if(dat_summary$PE_level[n]=="High"){
+      dat_summary$predicted[n]<-intercept+linear_comp*2+quad_comp*2
+      dat_summary$predicted_se[n]<-intercept_se+linear_comp_se+quad_comp_se
+     }
+  } else { # delayed
+    if(dat_summary$PE_level[n]=="Low"){
+      dat_summary$predicted[n]<-intercept-linear_comp*2+quad_comp*2+
+        delayed_ses
+      dat_summary$predicted_se[n]<-intercept_se+linear_comp_se+quad_comp_se
+    }else if(dat_summary$PE_level[n]=="Weak"){
+      dat_summary$predicted[n]<-intercept-linear_comp-quad_comp+
+        delayed_ses
+      dat_summary$predicted_se[n]<-intercept_se+quad_comp_se
+    }else if(dat_summary$PE_level[n]=="Flat"){
+      dat_summary$predicted[n]<-intercept+linear_comp*0-quad_comp*2+
+        delayed_ses
+      dat_summary$predicted_se[n]<-intercept_se+quad_comp_se
+    }else if(dat_summary$PE_level[n]=="Moderate"){
+      dat_summary$predicted[n]<-intercept+linear_comp-quad_comp+
+        delayed_ses
+      dat_summary$predicted_se[n]<-intercept_se+quad_comp_se
+    }else if(dat_summary$PE_level[n]=="High"){
+      dat_summary$predicted[n]<-intercept+linear_comp*2+quad_comp*2+
+        delayed_ses
+      dat_summary$predicted_se[n]<-intercept_se+linear_comp_se+quad_comp_se
+      
+    }
+    
+  }
+  
+}
+
+# convert logit to probabilities
+
+logit2prob <- function(logit){
+  odds <- exp(logit)
+  prob <- odds / (1 + odds)
+  return(prob)
+}
+
+dat_summary$predicted_prob<-logit2prob(dat_summary$predicted)
+
+
+# plot
+ggplot(data_agg, aes(PE_level, id_acc))+ 
+  # the error bars on the dat_summary dataset, which has the standard errors
+  # within-participants
+  geom_errorbar(aes(y = id_acc, ymin = id_acc - ci, ymax = id_acc + ci),
+                color = "black", width = 0.10, size =1, data=dat_summary)+
+  # now, we come back to the trial level dataframe to get the individual lines
+  geom_line(data = Datalong, aes(PE_level, id_acc,group = participant), 
+            size=1, alpha=0.2, stat="summary")+
+  # finally, we plot the average lines
+  geom_line( data = dat_summary,aes(PE_level, id_acc, 
+                                    # specify the group = in our case,
+                                    # all points have to be connected
+                                    # and thus group=1
+                                    group=1), 
+             size=1, stat="summary")+
+  
+  # now predicted
+  #geom_errorbar(aes(y = predicted_prob, ymin = predicted_prob - predicted_se,
+   #                 ymax = predicted_prob + predicted_se),
+    #            color = "red", width = 0.10, size =1, data=dat_summary)+
+  
+  geom_line( data = dat_summary,aes(PE_level, predicted_prob,
+                                 # specify the group = in our case,
+                                 # all points have to be connected
+                                 # and thus group=1
+                                 group=1),
+             size=1, stat="summary", colour = "red")+
+  
+  facet_grid(.~session)+
+  theme(strip.text.x = element_text(size = 13))+ 
+  ylim(c(0,1))+
+  ylab("% recognition")+
+  xlab("PE Level")
+
+# Save figure
+filename = "/home/javier/PowerFolders/premup_manuscript/source_figures/premup-three_recognition.png"
+sjPlot::save_plot(filename, fig = ggplot2::last_plot(), width = 12, height = 15,
+          dpi = 300, theme = ggplot2::theme_get(), label.color = "black",
+          label.size = 2.4, axis.textsize = 0.8, axis.titlesize = 0.75,
+          legend.textsize = 0.6, legend.titlesize = 0.65, legend.itemsize = 0.5)
+
+#------------------------------------------------------------------------------#
+# only on immediate
+#------------------------------------------------------------------------------#
+
+dat_summary_imm <- summarySEwithin(data_agg[data_agg$session=="Immediate",],
+                               measurevar = "id_acc",
+                               withinvars = c("PE_level"), 
+                               idvar = "participant")
+
+dat_summary_imm$session<-"ImmediateRec,"
+
+
+# now model only on immediate recognition
+model_red_imm<-glmer(id_acc~PE_level+(1|participant), 
+                 family=binomial(), data= Datalong[Datalong$session=="ImmediateRec",],
+                 control=glmerControl(optimizer="bobyqa",
+                                      optCtrl=list(maxfun=100000)))
+
+intercept_imm<-fixef(model_red_imm)[1]
+
+linear_comp_imm<-fixef(model_red_imm)[2]
+
+quad_comp_imm<-fixef(model_red_imm)[3]
+
+#delayed_ses_imm<-fixef(model_red_imm)[4]
+
+
+# now create predicted. Initialise variable
+dat_summary_imm$predicted_imm<-NA
+
+for (n in 1:nrow(dat_summary_imm)){
+  # if this is the immediate recognition
+    #if PE is low
+    if(dat_summary_imm$PE_level[n]=="LowPE"){
+      dat_summary_imm$predicted_imm[n]<-intercept_imm-linear_comp_imm+quad_comp_imm
+    }else if(dat_summary_imm$PE_level[n]=="MediumPE"){
+      dat_summary_imm$predicted_imm[n]<-intercept_imm+linear_comp_imm*0-quad_comp_imm
+    }else if(dat_summary_imm$PE_level[n]=="HighPE"){
+      dat_summary_imm$predicted_imm[n]<-intercept_imm+linear_comp_imm+quad_comp_imm
+
+    }
+
+}
+
+# convert logit to probabilities
+dat_summary_imm$predicted_prob<-logit2prob(dat_summary_imm$predicted)
+
+# plot
+ggplot(data_agg[data_agg$session=="ImmediateRec",], aes(PE_level, id_acc))+ 
+  # the error bars on the dat_summary dataset, which has the standard errors
+  # within-participants
+  geom_errorbar(aes(y = id_acc, ymin = id_acc - ci, ymax = id_acc + ci),
+                color = "black", width = 0.10, size =1, data=dat_summary_imm)+
+  # now, we come back to the trial level dataframe to get the individual lines
+  geom_line(data = Datalong[Datalong$session=="ImmediateRec",], aes(PE_level, id_acc,group = participant), 
+            size=1, alpha=0.2, stat="summary")+
+  # finally, we plot the average lines
+  geom_line( data = dat_summary_imm,aes(PE_level, id_acc, 
+                                    # specify the group = in our case,
+                                    # all points have to be connected
+                                    # and thus group=1
+                                    group=1), 
+             size=1, stat="summary")+
+  
+  # now predicted
+  #geom_errorbar(aes(y = id_acc, ymin = predicted_prob - ci, ymax = predicted_prob + ci),
+  #              color = "black", width = 0.10, size =1, data=dat_summary_imm)+
+  geom_line( data = dat_summary_imm,aes(PE_level, predicted_prob,
+                                    # specify the group = in our case,
+                                    # all points have to be connected
+                                    # and thus group=1
+                                    group=1),
+             size=1, stat="summary", colour = "red")+
+  
+  #facet_grid(.~session)+
+  theme(strip.text.x = element_text(size = 13))+ 
+  ylim(c(0,1))+
+  ylab("% recognition")+
+  xlab("PE Level")+
+
+  scale_colour_manual(name = 'Line cdolor', 
+                      values =c('black'='black','red'='red'), 
+                      labels = c('observed','predicted'))
+

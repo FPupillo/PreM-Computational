@@ -1,0 +1,177 @@
+# analyse data three
+
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+cd<-getwd()
+
+setup = "three"
+
+setwd("computational_model/output_files")
+
+# get the files
+files<-list.files( pattern ="fittedData.three.*")
+
+# absolute path
+abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
+
+file<-files[2]
+# loop through the files
+# for (file in files){
+
+fittedData<-read.csv(paste(abs, file, sep=""))
+
+# convert variables
+fittedData$PE_level<-as.factor(fittedData$PE_level)
+
+
+fittedData$session<-NA
+for (n in 1:nrow(fittedData)){
+  if (fittedData$participant[n]<41){
+    fittedData$session[n]<-"ImmediateRec"
+    
+  } else {
+    fittedData$session[n]<-"DelayedRec"
+    
+  }
+}
+
+
+##############################################################
+#### PE depending on the response
+##############################################################
+
+fittedData$PEresp<-NA
+for (o in 1: nrow(fittedData)){
+if (!is.null(fittedData$Delta1)){
+    if (fittedData$response[o]==1){
+      fittedData$PEresp[o]<-fittedData$Delta1[o]
+    }else if(fittedData$response[o]==2){
+      fittedData$PEresp[o]<-fittedData$Delta2[o]
+} else {fittedData$PEresp[o] <-NA}
+}
+}
+
+#fittedData$PEresp<-fittedData$Delta
+
+# delete NAs
+fittedData<-fittedData[!is.na(fittedData$PE_level),]
+#summarise
+fittedData %>%
+  group_by (PE_level) %>%
+  summarise(mean=mean(PEresp, na.rm=T))
+
+
+# distribution of PE by condition
+PErespdistr<-ggplot(fittedData, aes(x= PEresp, fill=PE_level))
+PErespdistr+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("Choice-based PE")
+
+# by participant
+
+g<-ggplot(fittedData, aes(x=PEresp))+ geom_histogram()+
+  #aes(colour = factor(SubNum))
+  facet_wrap(.~SubNum)
+print(g) 
+
+# change the order of the sessions
+fittedData$session<-factor(fittedData$session, level = c("ImmediateRec", "DelayedRec"))
+
+
+# plot it PE by recog
+PErespPlot<-ggplot(fittedData, aes(x=PEresp, y=id_acc))
+PErespPlot+
+  geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+            se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+  theme(strip.text.x = element_text(size = 13))+
+  facet_wrap(.~session) +ggtitle("Effect of choice-based PE on memory")
+
+# delete nas
+fittedData<-fittedData[!is.na(fittedData$PEresp),]
+
+modresp<-glmer(id_acc~poly(PEresp, 2)*session+(PEresp*session|SubNum),family=binomial,
+               data = fittedData, 
+               control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modresp)
+Anova(modresp)
+
+# drop interaction
+modrespdrop<-glmer(id_acc~poly(PEresp, 2)+(PEresp|SubNum),family=binomial,
+               data = fittedData, 
+               control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modrespdrop)
+
+PErespPlot<-ggplot(fittedData, aes(x=PEresp, y=id_acc))
+PErespPlot+
+  geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+            se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+  theme(strip.text.x = element_text(size = 13))+
+ ggtitle("effect of choice-based PE on memory")
+###############################################################
+#### PE depending on the observation
+##############################################################
+
+fittedData$PEobs<-NA
+for (o in 1: nrow(fittedData)){
+  if (fittedData$object_cat[o]==1){
+    fittedData$PEobs[o]<-fittedData$Delta1[o]
+  }else if(fittedData$object_cat[o]==2){
+    fittedData$PEobs[o]<-fittedData$Delta2[o]
+  }else if(fittedData$object_cat[o]==3){
+    fittedData$PEobs[o]<-fittedData$Delta3[o]
+  }
+}
+
+#summarise
+fittedData %>%
+  group_by (PE_level) %>%
+  dplyr::summarise(mean=mean(PEobs, na.rm=T)) 
+
+# distribution of PE by condition
+PEobsdistr<-ggplot(fittedData, aes(x= PEobs, fill=PE_level))
+print(
+  PEobsdistr+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE based on the observation")
+)
+
+# by participant
+ggplot(fittedData, aes(x=PEobs))+ geom_histogram()+
+  #aes(colour = factor(SubNum))
+  facet_wrap(.~SubNum)
+
+# plot it PE by recog, quadratic
+PErespPlot<-ggplot(fittedData, aes(x=PEobs, y=id_acc))
+print(
+  PErespPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+              se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(.~session) +ggtitle("Effect of observational PE on accuracy")
+)
+
+# plot it PE by recog, quadratic
+PErespPlot<-ggplot(fittedData, aes(x=PEobs, y=id_acc))
+print(
+  PErespPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~poly(x,2),method.args=list(family="binomial"),
+              se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~poly(x,2),method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(.~session) +ggtitle("Effect of observational PE on accuracy")
+)
+# analyse
+modobs<-glmer(id_acc~poly(PEobs,2)*session+(PEobs*session|SubNum),family=binomial,
+              data = fittedData, 
+              control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modobs)
+Anova(modobs)

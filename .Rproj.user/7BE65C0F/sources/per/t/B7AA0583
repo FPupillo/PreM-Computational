@@ -1,0 +1,28 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1625842766239.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1375188442",
+    "id" : "B7AA0583",
+    "lastKnownWriteTime" : 1623918531,
+    "last_content_update" : 1623918531,
+    "path" : "~/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/analysis_files/05.analysis.three.Rmd",
+    "project_path" : "computational_model/analysis_files/05.analysis.three.Rmd",
+    "properties" : {
+        "cursorPosition" : "152,2",
+        "last_setup_crc32" : "",
+        "scrollLine" : "0",
+        "source_window_id" : "",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 16,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

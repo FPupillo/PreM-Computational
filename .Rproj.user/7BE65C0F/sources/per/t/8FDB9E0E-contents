@@ -1,0 +1,201 @@
+##-------------------------------------------------------------------------------
+##  Model comparison: compare fit                                              --
+##  Created by Francesco Pupillo, Goethe University Frankfurt                  --
+##  FRI MAY 28 11:13:00 2021                                                   --
+##  This script compare the log likelihood and BIC of the different models to  --
+##      find the ones that best account for the data.                          --
+##      It does it for the different setups and print the graphs               --
+##  last update =                                                              --
+##  Fri Jun 18 14:48:12 2021                                                   --
+##-------------------------------------------------------------------------------
+
+txt<-("This script compare the log likelihood and BIC of the different models to
+    find the ones that best account for the data. 
+    It does it for the different setups and print the graphs")
+
+library(bannerCommenter)
+banner("Model comparison: compare fit", "Created by Francesco Pupillo, Goethe University Frankfurt", 
+       "FRI MAY 28 11:13:00 2021", txt, 
+      "last update = ", date(), emph = F, center = F, bandChar = "-")
+banner(txt, bandChar = "-")
+
+library(lme4)
+library(lmerTest)
+library(car)
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(ggjoy)
+
+rm(list=ls())
+
+# set current directory in the parent folder
+setwd(dirname(getwd()))
+
+cd<-getwd()
+
+setups<-c("pilot","priors", "flat", "three")
+setups<-c("pilot", "three")
+
+for (s in setups){
+  print(s)
+  
+  # retrieve the different models
+  setwd(paste("premup-", s,"/outputs/group_level/computational_model", sep=""))
+  
+  if (s=="pilot"){ # if this is the pilot, the Q is 0.33
+    
+    # list the files with parameter estimation
+    files<-list.files(pattern="ParameterEstimation.betalimit=10.initialQ=0.33.*")
+    files2<-list.files(pattern="ParameterEstimation.betalimit=30.initialQ=0.33.*")
+    # and, as the name is longer, sartpoint for substringing is earlier
+    startStr<-48
+    
+  }else{
+    
+  # list the files with parameter estimation
+  files<-list.files(pattern="ParameterEstimation.betalimit=10.initialQ=0.5.*")
+  files2<-list.files(pattern="ParameterEstimation.betalimit=30.initialQ=0.5.*")
+  files<-c(files, files2)
+  # startpoint is 48
+  startStr<-47
+  
+  }
+  
+  # create dataset to store the bic
+  BicAll<-vector()
+  
+  # loop through the files
+  for (n in 1:length(files)){
+    
+    # read the first files
+    cfile<-read.csv(files[n])
+    
+    # select parameters
+    cfile<-cfile[,c("PartNum", "BIC", "LogLikel")]
+    
+    # assing the name of the model
+    modname<-substr(files[n], startStr, nchar(files[n])-4 )
+    
+    # assing the identifier
+    cfile$model<-rep(modname, times=nrow(cfile))
+    
+    # assogm tp the dataframe
+    BicAll<-rbind(BicAll, cfile)
+    
+  }
+  
+  setwd(cd)
+  
+  # subset
+  #BicAll<-BicAll[, c(1,6,7,8)]
+  
+  # Count for how many participants a precise model was the best fit
+  # create two datasets = one for the LL and one for the BIC
+  
+  # try to convert to wide
+  library(reshape2)
+  BicAll_wideBIC <- dcast(BicAll, PartNum ~ model, value.var=c("BIC"), 
+                          fun.aggregate =sum)
+  BicAll_wideLL <- dcast(BicAll, PartNum ~ model, value.var=c("LogLikel"),
+                         fun.aggregate =sum)
+  
+  # find the best model for each participant according to BIC
+  # (the model that minimize the BIC)
+  # Model of interest
+  MoI<- c("RescorlaWagner_obsALL", "RescorlaWagner_feedbALL")
+  BicAll_wideBIC$BestModel<-NA
+  for (j in 1: nrow(BicAll_wideBIC)){
+    tryCatch({
+     # index<-which(BicAll_wideBIC[j,]==min(BicAll_wideBIC[j,(2:(length(files)))], na.rm=T))
+      
+      # only feedb and obs
+      index<-which(BicAll_wideBIC[j,]==min(BicAll_wideBIC[j,MoI], na.rm=T))
+      if (length(index)>1) {# fi there are more than one model
+        BicAll_wideBIC$BestModel[j]<-NA
+      }else{
+      BicAll_wideBIC$BestModel[j]<-names(BicAll_wideBIC[index])
+      }
+    }, error = function(e) { print(paste("problem with number", j))}, 
+       warning = function(f) { print(paste("warning with number", j))}) 
+  }
+  
+  # exclude obs all
+  # BicAll_wideBIC$BestModel<-NA
+  # for (j in 1: nrow(BicAll_wideBIC)){
+  #   tryCatch({
+  #     index<-which(BicAll_wideBIC[j,]==min(BicAll_wideBIC[j,c(2:6,8:14)], na.rm=T))
+  #     BicAll_wideBIC$BestModel[j]<-names(BicAll_wideBIC[index])
+  #   }, error = function(e) { print(paste("problem with number", j))}) 
+  # }
+  
+  table(BicAll_wideBIC$BestModel)
+  
+  # print the files
+  BestModel<-write.csv(BicAll_wideBIC, paste("computational_model/output_files/model_fitting_", 
+                                             s, ".csv", sep=""))
+  
+  # create and save graph
+  #jpeg(paste("premup-", s,"/figures/group_level/model_comparison_Bic.jpg", sep=""), width = 1600, height = 500)
+  # substring the names
+  BicAll_wideBIC$BestModelsubstr<-substr(BicAll_wideBIC$BestModel, 16, nchar(BicAll_wideBIC$BestModel))
+  
+  ggplot(BicAll_wideBIC, aes(BestModelsubstr))+geom_bar()+
+  theme(axis.text.x = element_text(  angle = -15))
+    
+
+  ggsave(paste("premup-", s,"/figures/group_level/model_comparison_Bic.jpg", sep=""))
+  
+  #dev.off()
+  
+  # now loglikelihood
+  BicAll_wideLL$BestModel<-NA
+  for (j in 1: nrow(BicAll_wideLL)){
+    tryCatch({
+      index<-which(BicAll_wideLL[j,]==max(BicAll_wideLL[j,2:length(files)+1], na.rm=T))
+      BicAll_wideLL$BestModel[j]<-names(BicAll_wideLL[index])
+    }, error = function(e) { print(paste("problem with number", j))}) 
+  }
+  
+table(BicAll_wideLL$BestModel)
+  
+  #jpeg(paste("premup-", s,"/figures/group_level/model_comparison_LL.jpg", sep=""), width = 1600, height = 500)
+  #ggplot(BicAll_wideLL, aes(BestModel))+geom_bar()
+  
+  #ggsave(paste("premup-", s,"/figures/group_level/model_comparison_LL.jpg", sep=""))
+  
+  #dev.off()
+  # write the winning models
+  winnmodBIC<-names(sort(table(BicAll_wideBIC$BestModel), decreasing=T)[1])
+  winnmodLL<-names(sort(table(BicAll_wideLL$BestModel), decreasing=T)[1])
+  
+  # report the number of participants for which this was the best model
+  nbestBIC<-max(table(BicAll_wideBIC$BestModel))
+  nbestLL<-max(table(BicAll_wideLL$BestModel))
+  
+  # retrieve 
+  winnmodfile<-read.csv("computational_model/winning_mods.csv")
+  
+  # convert to char
+  for (n in names(winnmodfile)){
+    winnmodfile[[n]]<-as.character(winnmodfile[[n]])
+  }
+  
+  winnmodfile[winnmodfile$setup==s,]<-c(s,winnmodBIC,winnmodLL, nbestBIC, nbestLL, 
+                                        # now the percentage of participants for which it was the best
+                                        nbestBIC/nrow(BicAll_wideBIC), nbestLL/nrow(BicAll_wideLL))
+  
+  
+  # save it
+  write.csv(winnmodfile, "computational_model/winning_mods.csv", row.names = F)
+}
+
+# read the file
+model_comp<-read.csv("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/winning_mods.csv")
+
+# print a table
+png("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/figures/winningmod_table.png",
+    height = 200, width = 750)
+grid.table(model_comp)
+ttheme_minimal(padding = unit(c(10,5), "mm"))
+dev.off()

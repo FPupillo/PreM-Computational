@@ -1,0 +1,8 @@
+"0","# now three"
+"0","# PE obse -three"
+"0",""
+"0","# by participant"
+"0","ggplot(exp1, aes(x=PE))+ geom_histogram()+theme_bw()+"
+"0","  facet_wrap(.~SubNum)"
+"2","`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+"

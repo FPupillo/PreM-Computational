@@ -1,0 +1,610 @@
+---
+title: "Analysis Pilot Three - direct comparison of the PE"
+author: "Francesco Pupillo"
+date: "18/06/2021"
+output: 
+    html_document:
+      toc: true
+      toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# model based stats
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+cd<-getwd()
+source("helper_functions/getPE.R")
+
+setwd("output_files")
+
+getwd()
+
+
+
+```
+
+
+
+### start with getting the pilot data
+
+```{r}
+# get the files
+abs<-abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
+
+pilotFeedb<-read.csv(paste(abs, "fittedData.pilot.Phase2.RescorlaWagner_feedbALL.csv", sep=""))
+
+pilotObs<-read.csv(paste(abs,"fittedData.pilot.Phase2.RescorlaWagner_obsALL.csv", sep=""))
+
+# exclude fillers
+pilotFeedb<-pilotFeedb[pilotFeedb$pred_Cond!=4,]
+
+pilotObs<-pilotObs[pilotObs$pred_Cond!=4,]
+
+# exclude participants with low performance in phase1
+exclPhase1<-c(7 ,16, 19, 20, 23)
+
+pilotFeedb.exc<-pilotFeedb[!pilotFeedb$SubNum %in% exclPhase1, ]
+
+pilotObs.exc<-pilotObs[!pilotObs$SubNum %in% exclPhase1, ]
+
+
+
+```
+
+
+### Now Three
+```{r}
+threeFeedb<-read.csv(paste(abs, "fittedData.three.Phase2.RescorlaWagner_feedbALL.csv", sep=""))
+
+threeObs<-read.csv(paste(abs, "fittedData.three.Phase2.RescorlaWagner_obsALL.csv", sep=""))
+
+exclPhase1<-c()
+
+threeFeedb.exc<-threeFeedb[!threeFeedb$SubNum %in% exclPhase1, ]
+threeObs.exc<-threeObs[!threeObs$SubNum %in% exclPhase1, ]
+
+# select only where practice == 0
+threeFeedb.exc<-threeFeedb.exc[threeFeedb.exc$practice==0,]
+threeObs.exc<-threeObs.exc[threeObs.exc$practice==0,]
+
+# delete the fillers
+threeFeedb.exc<-threeFeedb.exc[threeFeedb.exc$fillers==0,]
+threeObs.exc<-threeObs.exc[threeObs.exc$fillers==0,]
+
+```
+
+### create Feedb and Obs PE
+```{r}
+# select datasets 
+pilotFeedb.exc<-getPE(pilotFeedb.exc,3)
+pilotObs.exc<-getPE(pilotObs.exc,3)
+
+# get the observational PE from observational model in the feedb
+pilotFeedb.exc$PEobs<-pilotObs.exc$PEobs
+
+
+threeFeedb.exc<-getPE(threeFeedb.exc,2)
+threeObs.exc<-getPE(threeObs.exc,2)
+
+# get the observational from observational in the feedb
+threeFeedb.exc$PEobs<-threeObs.exc$PEobs
+
+# select the variables of interest
+VoI<-c("pe_level", "trialN", "rec_acc", "acc", "rec_session", "SubNum", "PEchoice", "PEobs") 
+pilotFeedb.exc<-pilotFeedb.exc[, VoI]
+names(pilotFeedb.exc)[c(1,3,4,5)]<-c("PE_level",  "id_acc","trial_acc", "session")
+
+# rename PE levels
+levels(pilotFeedb.exc$PE_level) <- c("0.9", "0.1", "0.5")
+# order the PE
+pilotFeedb.exc$PE_level<-factor(pilotFeedb.exc$PE_level, level = c("0.1", "0.5",  "0.9"))
+# convert PElevel as factor
+threeFeedb.exc$PE_level<-as.factor(threeFeedb.exc$PE_level)
+
+# check distribution 
+# PE feedb -pilot
+PEfeedbDistrPilot<-ggplot(pilotFeedb.exc, aes(x= PEchoice, fill=PE_level))
+print(
+  PEfeedbDistrPilot+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE choice distribution, Pilot")
+)
+ggsave("PEchoiceFeedbAll.Pilot.png")
+
+# now three
+# PE feedbb
+PEfeedbDistrThree<-ggplot(threeFeedb.exc, aes(x= PEchoice, fill=PE_level))
+
+print(
+  PEfeedbDistrThree+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE choice distribution, Three")
+)
+
+# check distribution 
+# Obs PE -pilot
+PEobsDistrPilot<-ggplot(pilotFeedb.exc, aes(x= PEobs, fill=PE_level))
+print(
+  PEobsDistrPilot+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE Obs distribution, Pilot")
+)
+
+ggsave("PEobsFeedbAll.Pilot.png")
+
+# now three
+# PE obse -three
+
+# by participant
+ggplot(threeFeedb.exc, aes(x=PEobs))+ geom_histogram()+
+  facet_wrap(.~SubNum)
+
+PEobsbDistrThree<-ggplot(threeFeedb.exc, aes(x= PEobs, fill=PE_level))
+
+print(
+  PEobsbDistrThree+geom_histogram()+ facet_grid( trial_acc~ PE_level)+ggtitle("PE observational distribution, Three")
+)
+
+names(pilotObs.exc)[c(1,3,4,5)]<-c("PE_level",  "id_acc","trial_acc", "session")
+
+threeFeedb.exc<-threeFeedb.exc[, names(pilotFeedb.exc)]
+#threeObs.exc<-threeObs.exc[, names(pilotObs.exc)]
+
+threeFeedb.exc$SubNum<-threeFeedb.exc$SubNum+max(unique(pilotFeedb.exc$SubNum))
+#threeObs.exc$SubNum<-threeObs.exc$SubNum+max(unique(pilotObs.exc$SubNum))
+```
+
+
+# save the datasets
+```{r}
+setwd(dirname(getwd()))
+getwd()
+write.csv(pilotFeedb.exc, "output_files/fittedData_pilot_RWfeedb_PEchoice_PEobs.csv")
+
+write.csv(threeFeedb.exc, "output_files/fittedData_three_RWfeedb_PEchoice_PEobs.csv")
+
+```
+
+
+
+
+### expectations
+```{r}
+
+
+# get the mean of the variance
+pilotFeedb$expectation<-NA
+for (n in 1:nrow(pilotFeedb.exc)){
+  pilotFeedb$expectation[n]<-(max(unlist(pilotFeedb[n,c("P1", "P2", "P3")]))[1])
+}
+# plot
+PEexpDistrPilot<-ggplot(pilotFeedb, aes(x= expectation, fill=pe_level))
+print(
+  PEexpDistrPilot+geom_histogram()+ facet_grid( ~ pe_level)+ggtitle("variance distribution, Pilot")
+)
+
+
+# divide it by 0.3
+pilotFeedb$expectation<-pilotFeedb$expectation/0.3
+
+# plot
+print(
+  ggplot(pilotFeedb[pilotFeedb$rec_session=="ImmediateRec",], aes( x=expectation, y=rec_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~poly(x,2),method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))
+    #facet_grid(.~acc)
+)
+
+
+# ist there an effect of expectation?
+expMod<-glmer(rec_acc~poly(expectation,2) +(expectation|SubNum), 
+              family=binomial, data =pilotFeedb[!is.na(pilotFeedb$expectation) & pilotFeedb$rec_session=="ImmediateRec",])
+
+summary(expMod)
+
+# effect of expectations on feedback?
+expFeedMod<-glmer(acc~poly(expectation,2) +(poly(expectation,2)|SubNum), 
+                  family=binomial, data =pilotFeedb[!is.na(pilotFeedb$expectation) & pilotFeedb$rec_session=="ImmediateRec",])
+summary(expFeedMod)
+
+# model with exp and feedb
+expFeedbonMem<-glmer(rec_acc~expectation+acc + (acc+expectation|SubNum), 
+                     family=binomial, data =pilotFeedb[pilotFeedb$rec_session=="ImmediateRec",])
+
+summary(expFeedbonMem)
+Anova(expFeedbonMem)
+
+# WHAT about interaction?
+expFeedbonMem<-glmer(rec_acc~expectation*acc + (acc*expectation|SubNum), 
+                     family=binomial, data =pilotFeedb[!is.na(pilotFeedb$expectation) & pilotFeedb$rec_session=="ImmediateRec",],
+                     control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+
+summary(expFeedbonMem)
+
+print(
+  ggplot(pilotFeedb, aes( x=expectation, y=rec_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(.~acc)
+)
+```
+
+
+```{r}
+
+## PE by accuracy - pilot
+# plot
+print(
+  ggplot(pilotFeedb.exc[pilotFeedb.exc$session=="ImmediateRec",], aes( x=PEobs, y=id_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(.~trial_acc)
+)
+
+ggsave("PEobsByAccFeedbAll.png")
+## PE by accuracy - three
+print(
+  ggplot(threeFeedb.exc[threeFeedb.exc$session==1,], aes( x=PEobs, y=id_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(.~trial_acc)
+)
+
+# analyse
+PEbyAccPilot<-glmer(id_acc~PEobs*trial_acc*PEobs+(trial_acc*PEobs|SubNum), family= binomial, 
+                    data = pilotFeedb.exc[!is.na(pilotFeedb.exc$PEobs) & pilotFeedb.exc$session=="ImmediateRec",],
+                    control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+
+
+summary(PEbyAccPilot)
+
+
+# in the positive side
+PEbyAccPilotPos<-glmer(id_acc~PEobs+(PEobs|SubNum), family= binomial, 
+                       data = pilotFeedb.exc[!is.na(pilotFeedb.exc$PEobs) & pilotFeedb.exc$session=="ImmediateRec"
+                                             & pilotFeedb.exc$trial_acc==1,],
+                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccPilotPos)
+
+
+# in the negative side
+PEbyAccPilotNeg<-glmer(id_acc~PEobs+(PEobs|SubNum), family= binomial, 
+                       data = pilotFeedb.exc[!is.na(pilotFeedb.exc$PEobs) & pilotFeedb.exc$session=="ImmediateRec"
+                                             & pilotFeedb.exc$trial_acc==0,],
+                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccPilotNeg)
+
+
+#### three
+# analyse
+PEbyAccThree<-glmer(id_acc~PEobs*trial_acc+(trial_acc*PEobs|SubNum), family= binomial, 
+                    data = threeFeedb.exc[!is.na(threeFeedb.exc$PEobs) & threeFeedb.exc$session==1,],
+                    control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+
+
+summary(PEbyAccThree)
+
+# in the positive
+PEbyAccThreepos<-glmer(id_acc~PEobs+(PEobs|SubNum), family= binomial, 
+                       data = threeFeedb.exc[threeFeedb.exc$trial_acc==1 & threeFeedb.exc$session==1,],
+                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+
+summary(PEbyAccThreepos)
+
+# in the negative
+PEbyAccThreeneg<-glmer(id_acc~PEobs+(PEobs|SubNum), family= binomial, 
+                       data = threeFeedb.exc[threeFeedb.exc$trial_acc==0 & threeFeedb.exc$session==1,],
+                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+
+summary(PEbyAccThreeneg)
+
+
+```
+
+
+
+# Merge them
+```{r}
+pilotFeedb.exc$setup<-"pilot"
+threeFeedb.exc$setup<-"three"
+
+#threeFeedb.exc$PE_level<-as.factor(threeFeedb.exc$PE_level)
+#threeObs.exc$PE_level<-as.factor(threeObs.exc$PE_level)
+
+# convert the levels in PE pilot to match the ones from the three
+#levels(pilotFeedb.exc$PE_level) <- c("0.9", "0.1", "0.5")
+#levels(pilotObs.exc$PE_level) <- c("0.9", "0.1", "0.5")
+
+threeFeedb.exc$session<-as.factor(threeFeedb.exc$session)
+levels(threeFeedb.exc$session) <- c("ImmediateRec", "DelayedRec")
+
+threeFeedb.exc$SubNum<-threeFeedb.exc$SubNum+max(unique(pilotFeedb.exc$SubNum))
+
+# merge thetwo
+allDataFeedb<-data.frame(rbind(pilotFeedb.exc,threeFeedb.exc ))
+#allDataObs<-data.frame(rbind(pilotObs.exc,threeObs.exc ))
+
+# order the PE
+allDataFeedb$PE_level<-factor(allDataFeedb$PE_level, level = c("0.1","0.3", "0.5", "0.7", "0.9"))
+#allDataObs$PE_level<-factor(allDataObs$PE_level, level = c("0.1","0.3", "0.5", "0.7", "0.9"))
+
+# change the order of the sessions
+allDataFeedb$session<-factor(allDataFeedb$session, level = c("ImmediateRec", "DelayedRec"))
+#allDataObs$session<-factor(allDataObs$session, level = c("ImmediateRec", "DelayedRec"))
+
+```
+
+Save it
+```{r}
+setwd(dirname(getwd()))
+getwd()
+write.csv(allDataFeedb, "output_files/fittedData_pilot-three_RWfeedb_PEchoice_PEobs.csv")
+
+```
+
+# print the effect
+```{r}
+# plot 
+print(
+  ggplot(allDataFeedb, aes( x=PEchoice, y=id_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(setup~session)
+)
+
+print(
+  ggplot(allDataFeedb, aes( x=PEobs, y=id_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~poly(x,2),method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~poly(x,2),method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(setup~session)
+)
+```
+
+```{r}
+print(
+  ggplot(allDataFeedb, aes( x=PEobs, y=id_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(trial_acc~session+setup)
+)
+
+# analyse
+PEbyAccAll<-glmer(id_acc~PEobs*trial_acc*setup*session+(trial_acc*PEobs|SubNum), family= binomial, 
+                  data = allDataFeedb[!is.na(allDataFeedb$PEobs), ],
+                  control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+
+summary(PEbyAccAll)
+
+Anova(PEbyAccAll)
+
+# only in immediate session
+PEbyAccAllimm<-glmer(id_acc~PEobs*trial_acc+(trial_acc*PEobs|SubNum), family= binomial, 
+                     data = allDataFeedb[!is.na(allDataFeedb$PEobs) & allDataFeedb$session=="ImmediateRec", ],
+                     control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+
+summary(PEbyAccAllimm)
+
+# in delayed
+PEbyAccAlldel<-glmer(id_acc~PEobs*trial_acc+(trial_acc*PEobs|SubNum), family= binomial, 
+                     data = allDataFeedb[!is.na(allDataFeedb$PEobs) & allDataFeedb$session=="DelayedRec", ],
+                     control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccAlldel)
+
+Anova(PEbyAccAlldel)
+
+# drop inter
+PEbyAccAllimm<-glmer(id_acc~PEobs+trial_acc+(trial_acc+PEobs|SubNum), family= binomial, 
+                     data = allDataFeedb[!is.na(allDataFeedb$PEobs) & allDataFeedb$session=="DelayedRec", ],
+                     control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccAllimm)
+
+# plot    
+print(
+  ggplot(allDataFeedb, aes( x=PEobs, y=id_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(trial_acc~session)
+)
+
+PEbyAccAllimmPos<-glmer(id_acc~PEobs+(PEobs|SubNum), family= binomial, 
+                        data = allDataFeedb[!is.na(allDataFeedb$PEobs) & allDataFeedb$session=="ImmediateRec" &
+                                              allDataFeedb$trial_acc==1  ,],
+                        control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccAllimmPos)
+
+PEbyAccAllimmNeg<-glmer(id_acc~PEobs+(PEobs|SubNum), family= binomial, 
+                        data = allDataFeedb[!is.na(allDataFeedb$PEobs) & allDataFeedb$session=="ImmediateRec" &
+                                              allDataFeedb$trial_acc==0  ,],
+                        control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccAllimmNeg)
+
+
+# allDataFeedb[allDataFeedb$session =="ImmediateRec",] %>%
+#   group_by(SubNum, trial_acc, PE_level) %>%
+#   mutate(minN = min(tally())) 
+
+allDataNew<-allDataFeedb[allDataFeedb$PE_level!= 0.9 & allDataFeedb$trial_acc!=1,]
+
+```
+
+# analyse with quantiles
+```{r message=FALSE, warning=FALSE}
+allDataFeedbImm<-allDataFeedb[allDataFeedb$session =="ImmediateRec",] 
+
+# create a vector
+#binnedData<-data.frame(matrix(ncol = 7, nrow = 0))
+#names(binnedData)<-c("quantile","PEobs" , "id_acc" , "PE_level","SubNum" , "trial_acc", "session" )
+
+binnedData<-vector()
+for (s in unique(allDataFeedbImm$SubNum)){
+  tryCatch({
+    # subset participant
+    currdf<-allDataFeedbImm[allDataFeedbImm$SubNum==s,]
+    #for (PElev in unique(currdf$PE_level)){
+    #currdfPE<-currdf[currdf$PE_level==PElev,]
+    for (trial_acc in c(1,0)){
+      currfacc<-currdf[currdf$trial_acc==trial_acc,]
+      # sort them
+      #currdfPEacc<-currdfPEacc[order(currdfPEacc$PEobs),]
+      # get quantiles
+      quantiles<-quantile(currfacc$PEobs)
+      # assign quantiles
+      currfacc$quantile<-NA
+      for (n in 1:nrow(currfacc)){
+        if (currfacc$PEobs[n]>=quantiles[1] & currfacc$PEobs[n]<quantiles[2]){
+          currfacc$quantile[n]<-1  
+        } else if(currfacc$PEobs[n]>=quantiles[2] & currfacc$PEobs[n]<quantiles[3]){
+          currfacc$quantile[n]<-2
+          
+        } else if (currfacc$PEobs[n]>=quantiles[3] & currfacc$PEobs[n]<quantiles[4]){
+          currfacc$quantile[n]<-3
+        } else if (currfacc$PEobs[n]>=quantiles[4] ){
+          currfacc$quantile[n]<-4
+        } 
+        
+      }
+      
+      # create mean of id_acc and PEobs by quantile
+      df<-currfacc %>%
+        group_by(quantile) %>%
+        dplyr::summarise(PEobs = mean(PEobs), id_acc = mean(id_acc),
+                         #PE_level = unique(PE_level), 
+                         SubNum = unique(SubNum), 
+                         trial_acc = unique(trial_acc), session = unique(session))
+      
+      
+      binnedData<-rbind(binnedData, as.data.frame(df))   
+    }
+  },  error=function(e){cat("ERROR :",conditionMessage(e), "\n")})  
+  
+}
+
+# visualize
+binnedData$quantile<-as.factor(binnedData$quantile)
+# plot
+PlotBind<-ggplot(binnedData, aes(x= PEobs, fill=quantile))
+print(
+  PlotBind+geom_histogram()+ facet_grid( trial_acc~ quantile)+ggtitle("quantile distribution,All")
+)
+
+# by participant
+binnedData%>%
+  group_by(SubNum) %>%
+  tally()
+
+
+# take the se within-participant
+data_agg<-binnedData %>%
+  group_by(quantile,  trial_acc, SubNum) %>%
+  dplyr::summarise(id_acc = mean(id_acc, na.rm = T))
+
+library(Rmisc)
+dat_summary <- summarySEwithin(data_agg,
+                               measurevar = "id_acc",
+                               withinvars = c("quantile", "trial_acc"), 
+                               idvar = "SubNum")
+
+data_agg$quantile<-as.factor(data_agg$quantile)
+gplotquantObs<-ggplot(data_agg, aes( x=quantile, y=id_acc))+
+  geom_bar(aes(quantile, id_acc, fill = quantile),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  
+  geom_errorbar(aes(y = id_acc, ymin = id_acc - se, ymax = id_acc + se),
+                color = "black", width = 0.10, data=dat_summary)+
+  facet_wrap(trial_acc~.)
+#scale_x_discrete(
+#  labels=c(as.character(round(quantile,2))) )
+
+print(gplotquantObs)
+
+PEquant<-lmer(id_acc~quantile*trial_acc+(quantile+trial_acc|SubNum), 
+              data = data_agg)
+
+summary(PEquant)    
+Anova(PEquant, type="III")
+
+# 0 and 1 separately
+PEquantNeg<-lmer(id_acc~quantile+(1|SubNum), 
+                 data = data_agg[data_agg$trial_acc==0,])
+
+summary(PEquantNeg)
+
+
+PEquantPos<-lmer(id_acc~quantile+(1|SubNum), 
+                 data = data_agg[data_agg$trial_acc==1,])
+
+summary(PEquantPos)      
+
+
+
+```
+### check the difference between value of the predicted and value of the observed one
+```{R}
+names(pilotFeedb)
+
+getPrVsObs<-function(df){
+  #------------------------------------------------------------------------#
+  # function that returns a variable that represents the difference between
+  # the value of the category that participants predicted - the value of the 
+  # category that participants observed
+  # INPUT - dataframe with fitted data (RL model)
+  # OUTPUT - a dataframe with the prVsObs variable
+  #------------------------------------------------------------------------#
+  
+  # create the variable  
+  df$prVsObs[n]<-NA
+  for (n in 1:nrow(df)){
+    
+    if (df$response[n]!=0){ 
+      predicted<-paste("P", df$response[n],sep="")
+      observed<-paste("P", df$object_cat[n],sep="")
+      df$prVsObs[n]<-df[n, predicted] - df[n, observed]
+      
+      
+    }else { # we are not assigning values when there was no choice
+      df$prVsObs[n]<-NA
+    }
+    
+    
+  }
+  return(data)
+}
+
+
+pilotFeedb<-getPrVsObs(pilotFeedb)
+
+```

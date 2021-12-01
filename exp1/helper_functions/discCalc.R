@@ -1,0 +1,57 @@
+# function that calculates SDT variables
+
+discCalc<-function(data){
+#######################
+# the function takes a long dataset where each row is an observation
+# and returns variables hits, false alarms, correct rejections, miss
+# dprime, etc
+library(psycho)
+  
+  
+  # calculate hit, miss, rej, and FA
+  data$type<-NA
+  for ( i in 1:nrow(data)){
+    if (data$rec_trialType[i]=="old" & data$id_acc[i]==1 ){
+      data$type[i]<-"HIT"
+    } else if (data$rec_trialType[i]=="old"& data$id_acc[i]== 0 ){
+      data$type[i]<-"Miss"
+    } else if(data$rec_trialType[i]=="new" & data$id_acc[i]== 1 ){
+      data$type[i]<-"CorrRej"
+    } else if (data$rec_trialType[i]=="new"& data$id_acc[i]==0 ){
+      data$type[i]<-"FA"
+    }
+  }
+  
+  # variables of interests
+  VoI<-c("participant", "type")
+  
+  # wide dataset
+  wideData<-table(data[,VoI])
+  
+  # convert it to a data.frame
+  wideData<-as.data.frame.matrix(wideData)
+  
+  # include row names
+  wideData$SubNum<-rownames(wideData)
+  
+  # reorder the columns to make the id variable the first one
+  wideData<-wideData[, c(5,1:4)]
+  
+  # get rid of the rownames
+  rownames(wideData) <- c()
+  
+  # compute percentage HIT
+  wideData$HITrate<-wideData$HIT/(wideData$HIT+wideData$Miss)
+  
+  # percentage false alarm
+  wideData$FArate<-wideData$FA/(wideData$FA+wideData$CorrRej)
+  
+  # calculate dprime
+  indices <- psycho::dprime(wideData$HIT, wideData$FA, wideData$Miss, wideData$CorrRej)
+  
+  # bind them
+  wideData<-cbind(wideData, indices)
+  
+  return(wideData)
+
+}

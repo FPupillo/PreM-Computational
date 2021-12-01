@@ -1,0 +1,271 @@
+---
+title: "Analysis Pilot Three - feedback and observational"
+author: "Francesco Pupillo"
+date: "16/06/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# model based stats
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+cd<-getwd()
+source("helper_functions/getPE.R")
+
+setwd("output_files")
+
+getwd()
+
+
+
+```
+
+
+
+### start with getting the pilot data
+
+```{r}
+# get the files
+abs<-abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
+
+pilotFeedb<-read.csv(paste(abs, "fittedData.pilot.Phase2.RescorlaWagner_feedbALL.csv", sep=""))
+
+pilotObs<-read.csv(paste(abs,"fittedData.pilot.Phase2.RescorlaWagner_obsALL.csv", sep=""))
+
+# exclude fillers
+pilotFeedb<-pilotFeedb[pilotFeedb$pred_Cond!=4,]
+  
+pilotObs<-pilotObs[pilotObs$pred_Cond!=4,]
+
+# exclude participants with low performance in phase1
+exclPhase1<-c(7 ,16, 19, 20, 23)
+
+pilotFeedb.exc<-pilotFeedb[!pilotFeedb$SubNum %in% exclPhase1, ]
+
+pilotObs.exc<-pilotObs[!pilotObs$SubNum %in% exclPhase1, ]
+
+
+
+```
+
+
+### Now Three
+```{r}
+threeFeedb<-read.csv(paste(abs, "fittedData.three.Phase2.RescorlaWagner_feedbALL.csv", sep=""))
+
+threeObs<-read.csv(paste(abs, "fittedData.three.Phase2.RescorlaWagner_obsALL.csv", sep=""))
+
+exclPhase1<-c()
+
+threeFeedb.exc<-threeFeedb[!threeFeedb$SubNum %in% exclPhase1, ]
+threeObs.exc<-threeObs[!threeObs$SubNum %in% exclPhase1, ]
+
+# select only where practice == 0
+  threeFeedb<-threeFeedb[threeFeedb$practice==0,]
+    threeObs<-threeObs[threeObs$practice==0,]
+
+  # delete the fillers
+  threeFeedb<-threeFeedb[threeFeedb$fillers==0,]
+  threeObs<-threeObs[threeObs$fillers==0,]
+
+```
+
+### create Feedb and Obs PE
+```{r}
+# select datasets 
+pilotFeedb.exc<-getPE(pilotFeedb.exc,3)
+pilotObs.exc<-getPE(pilotObs.exc,3)
+
+threeFeedb.exc<-getPE(threeFeedb.exc,2)
+threeObs.exc<-getPE(threeObs.exc,2)
+
+
+VoI<-c("pe_level", "trialN", "rec_acc", "acc", "rec_session", "SubNum", "PEchoice", "PEobs") 
+pilotFeedb.exc<-pilotFeedb.exc[, VoI]
+pilotObs.exc<-pilotObs.exc[, VoI]
+
+names(pilotFeedb.exc)[c(1,3,4,5)]<-c("PE_level",  "id_acc","trial_acc", "session")
+names(pilotObs.exc)[c(1,3,4,5)]<-c("PE_level",  "id_acc","trial_acc", "session")
+
+threeFeedb.exc<-threeFeedb.exc[, names(pilotFeedb.exc)]
+threeObs.exc<-threeObs.exc[, names(pilotObs.exc)]
+
+threeFeedb.exc$SubNum<-threeFeedb.exc$SubNum+max(unique(pilotFeedb.exc$SubNum))
+threeObs.exc$SubNum<-threeObs.exc$SubNum+max(unique(pilotObs.exc$SubNum))
+```
+
+### Merge them
+```{r}
+pilotFeedb.exc$setup<-"pilot"
+pilotObs.exc$setup<-"pilot"
+threeFeedb.exc$setup<-"three"
+threeObs.exc$setup<-"three"
+
+threeFeedb.exc$PE_level<-as.factor(threeFeedb.exc$PE_level)
+threeObs.exc$PE_level<-as.factor(threeObs.exc$PE_level)
+
+# convert the levels in PE pilot to match the ones from the three
+levels(pilotFeedb.exc$PE_level) <- c("0.9", "0.1", "0.5")
+levels(pilotObs.exc$PE_level) <- c("0.9", "0.1", "0.5")
+
+threeFeedb.exc$session<-as.factor(threeFeedb.exc$session)
+levels(threeFeedb.exc$session) <- c("ImmediateRec", "DelayedRec")
+
+threeObs.exc$session<-as.factor(threeObs.exc$session)
+levels(threeObs.exc$session) <- c("ImmediateRec", "DelayedRec")
+
+# merge thetwo
+allDataFeedb<-data.frame(rbind(pilotFeedb.exc,threeFeedb.exc ))
+allDataObs<-data.frame(rbind(pilotObs.exc,threeObs.exc ))
+
+# order the PE
+allDataFeedb$PE_level<-factor(allDataFeedb$PE_level, level = c("0.1","0.3", "0.5", "0.7", "0.9"))
+allDataObs$PE_level<-factor(allDataObs$PE_level, level = c("0.1","0.3", "0.5", "0.7", "0.9"))
+
+# change the order of the sessions
+allDataFeedb$session<-factor(allDataFeedb$session, level = c("ImmediateRec", "DelayedRec"))
+allDataObs$session<-factor(allDataObs$session, level = c("ImmediateRec", "DelayedRec"))
+
+```
+
+### Feedback model - choicePE
+```{r}
+
+
+# plot 
+print(
+ggplot(allDataFeedb, aes( x=PEchoice, y=id_acc))+
+  geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+  aes(colour = factor(SubNum), alpha=0.3)+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+  theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+  facet_grid(setup~session)
+)
+# create a model for PE Choice
+PEchoiceMod<-glmer(id_acc~PEchoice*session*setup+(PEchoice*session|SubNum), 
+                   family=binomial, data = allDataFeedb,
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+print(
+summary(PEchoiceMod)
+)
+print(
+Anova(PEchoiceMod, type = "II")
+)
+
+```
+
+### test for quadratic effect
+```{r}
+# quadratic effect?
+# create a model for PE Choice
+PEchoiceModquad<-glmer(id_acc~poly(PEchoice,2)*session*setup+(PEchoice*session|SubNum), 
+                   family=binomial, data = allDataFeedb[!is.na(allDataFeedb$PEchoice),],
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+print(
+summary(PEchoiceModquad)
+)
+print(
+Anova(PEchoiceModquad, type = "II")
+)
+```
+
+### Now observational PE: test for a quadratic effect
+``` {r}
+# distribution of PE
+  PEchoicedistr<-ggplot(allDataFeedb[allDataFeedb$session =="DelayedRec", ], aes(x= PEobs, fill=PE_level))
+    PEchoicedistr+geom_histogram()+ facet_grid( setup~ PE_level)+ggtitle("PE based on the observation")
+
+# plot 
+print(
+ggplot(allDataFeedb[!is.na(allDataFeedb$id_acc),], aes( x=PEobs, y=id_acc))+
+    #geom_smooth(method="glm",formula=y~poly(x, 2),method.args=list(family="binomial"), se=F)+
+  geom_line(stat="smooth",method = "glm",  formula=y~poly(x, 2),method.args=list(family="binomial"))+
+  aes(colour = factor(SubNum), alpha=0.3)+
+  geom_smooth(method="glm",formula=y~poly(x, 2),method.args=list(family="binomial"), colour="black", se=T)+
+  theme(strip.text.x = element_text(size = 13))+ #ylim(c(0,1))+
+  facet_grid(setup~session)
+)
+
+# now observation PE
+PEobsModquad<-glmer(id_acc~poly(PEobs,2)*session*setup+(PEobs*session|SubNum), 
+                   family=binomial, data = allDataFeedb[!is.na(allDataFeedb$PEobs),],
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+print(
+summary(PEobsModquad)
+)
+
+# main effects
+print(Anova(PEobsModquad), type = "II")
+
+```
+
+### Observational model - choicePE
+```{r}
+
+
+# plot 
+print(
+ggplot(allDataObs, aes( x=PEchoice, y=id_acc))+
+  geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+  aes(colour = factor(SubNum), alpha=0.3)+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+  theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+  facet_grid(setup~session)
+)
+# create a model for PE Choice
+PEchoiceModobs<-glmer(id_acc~PEchoice*session*setup+(PEchoice*session|SubNum), 
+                   family=binomial, data = allDataObs,
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+print(
+summary(PEchoiceModobs)
+)
+print(
+Anova(PEchoiceModobs, type = "II")
+)
+
+```
+### Now observational PE: test for a quadratic effect
+``` {r}
+# distribution of PE
+  PEobsdistr<-ggplot(allDataObs, aes(x= PEobs, fill=PE_level))
+    PEobsdistr+geom_histogram()+ facet_grid( setup~ PE_level)+ggtitle("PE based on the observation")
+
+# plot 
+print(
+ggplot(allDataObs[!is.na(allDataObs$id_acc),], aes( x=PEobs, y=id_acc))+
+    #geom_smooth(method="glm",formula=y~poly(x, 2),method.args=list(family="binomial"), se=F)+
+  geom_line(stat="smooth",method = "glm",  formula=y~poly(x, 2),method.args=list(family="binomial"))+
+  aes(colour = factor(SubNum), alpha=0.3)+
+  geom_smooth(method="glm",formula=y~poly(x, 2),method.args=list(family="binomial"), colour="black", se=T)+
+  theme(strip.text.x = element_text(size = 13))+ #ylim(c(0,1))+
+  facet_grid(setup~session)
+)
+
+# now observation PE
+PEobsModquadobs<-glmer(id_acc~poly(PEobs,2)*session*setup+(PEobs*session|SubNum), 
+                   family=binomial, data = allDataObs[!is.na(allDataObs$PEobs),],
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+print(
+summary(PEobsModquadobs)
+)
+
+# main effects
+print(Anova(PEobsModquadobs), type = "II")
+
+```

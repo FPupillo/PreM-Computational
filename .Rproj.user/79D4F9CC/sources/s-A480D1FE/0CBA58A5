@@ -1,0 +1,25 @@
+{
+    "id": "0CBA58A5",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1619785660111.0,
+    "source_on_save": false,
+    "relative_order": 9,
+    "properties": {
+        "id": "9d7b13fa91324aeaad424931c2524443",
+        "name": "a",
+        "title": "a"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1619691467,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1619785660111,
+    "read_only": false,
+    "read_only_alternatives": []
+}

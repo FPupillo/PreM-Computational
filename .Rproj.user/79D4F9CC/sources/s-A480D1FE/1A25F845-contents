@@ -1,0 +1,33 @@
+getQsPhase1<-function(data){
+  #------------------------------------------------------------------------------------------------#
+  # this function takes the estimated data from phase 1
+  # and return the last Qs by scene
+  # 
+  # Input:
+  #   data: long data with estimated values from phase 1
+  #   
+  # Output:
+  #   A Matrix with the Qs by scene
+  #------------------------------------------------------------------------------------------------#
+  # we need a matrix that takes the last values of the Qs for each scene
+  
+  # get all the Q variables
+  varname<-names(data)
+  
+  # get all the ones that start with "Q"
+  varnameQ<-varname[grepl("Q", varname)]
+  
+  # get how many scene there are
+  scenenum<-length(unique(file1$scene_cat))
+  
+  Qindex<-varnameQ
+  
+  matrixQ<-matrix(NA, nrow = scenenum ,ncol = length(Qindex))
+  for (s in 1:scenenum){
+    matrixQ[s,]<-unlist(tail(data1[data1$scene_cat==s,Qindex],1))
+  }
+  
+  matrixQ<-data.frame(matrixQ)
+  names(matrixQ)<-Qindex
+  return(matrixQ)
+}

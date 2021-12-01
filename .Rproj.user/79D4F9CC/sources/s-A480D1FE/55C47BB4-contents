@@ -1,0 +1,383 @@
+#---------------------------------------------------------------------------------------------#
+# ---------------analysis of the model-derived variables for priors setup---------------------#
+#---------------------------------------------------------------------------------------------#
+#
+# Prints graphs in the "figures" folder in computational model and datasets with the model
+# derived variable in the outputs (AlldataPilot*). 
+# 
+# Created by Francesco Pupillo, Goethe University Frankfurt, pupillo@psych.uni-frankfurt.de
+#
+# last modified:"Wed May 19 17:55:18 2021"
+#---------------------------------------------------------------------------------------------#
+
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+setup = "pilot"
+
+cd<-getwd()
+
+setwd("output_files")
+
+# get the files
+files<-list.files( pattern ="fittedData.pilot.Phase2.*")
+
+# absolute path
+abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
+
+# loop through the files
+for (file in files){
+  
+  # get the model names
+  # assing the name of the model
+  modname<-substr(file, 18, nchar(file)-4 )
+  
+  print(paste("working on model", modname))
+  
+  fittedData<-read.csv(paste(abs, file, sep=""))
+  
+  # exclude fillers
+  fittedData<-fittedData[fittedData$pred_Cond!=4,]
+  
+  # convert variables
+  fittedData$PE_level<-as.factor(fittedData$pe_level)
+  fittedData$PE_level<-factor(fittedData$PE_level, level = c("LowPE", "MediumPE", "HighPE"))
+  
+  fittedData$session<-as.factor(fittedData$rec_session)
+  fittedData$session<-factor(fittedData$session, level = c("ImmediateRec", "DelayedRec"))
+  
+  #---------------------------------------------------------------------------------------------#
+  #--------------------------- PE depending on the response ------------------------------------#
+  #---------------------------------------------------------------------------------------------#
+  
+  
+  
+  fittedData$PEresp<-NA
+  if (!is.null(fittedData$Delta1)){
+    for (o in 1: nrow(fittedData)){
+      if (fittedData$response[o]==1){
+        fittedData$PEresp[o]<-fittedData$Delta1[o]
+      }else if(fittedData$response[o]==2){
+        fittedData$PEresp[o]<-fittedData$Delta2[o]
+      }else if(fittedData$response[o]==3){
+        fittedData$PEresp[o]<-fittedData$Delta3[o]
+      } else {fittedData$PEresp[o]<-NA}
+    }
+  } else {fittedData$PEresp[o] <-fittedData$Delta}
+  
+  # exclude participants with low performance in phase1
+  exclPhase1<-c(7 ,16, 19, 20, 23)
+  
+  fittedData.exc<-fittedData[!fittedData$SubNum %in% exclPhase1, ]
+  
+  #summarise
+  fittedData.exc %>%
+    group_by (pe_level) %>%
+    summarise(mean=mean(PEresp, na.rm=T))
+  
+  # distribution of PE by condition
+  PErespdistr<-ggplot(fittedData.exc, aes(x= PEresp, fill=PE_level))
+  PErespdistr+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE based on the choice")
+  
+  # by participant
+  g<-ggplot(fittedData.exc, aes(x=PEresp))+ geom_histogram()+
+    #aes(colour = factor(SubNum))
+    facet_wrap(.~SubNum)
+  
+  print(g) 
+  
+  ggsave( paste("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/figures/",
+                "PEchoice_distribution_", setup, "_", modname, ".jpg", sep=""))
+  # plot it PE by recog
+  PErespPlot<-ggplot(fittedData.exc, aes(x=PEresp, y=rec_acc))
+  PErespPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+              se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(.~session) +ggtitle("effect of feedback-based PE on memory")
+  
+  ggsave( paste("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/figures/",
+                "PEchoice_by_recog", setup, "_", modname, ".jpg", sep=""))
+  
+  modresp<-glmer(rec_acc~PEresp*session+(PEresp*session|SubNum),family=binomial,
+                 data = fittedData.exc, 
+                 control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+  
+  summary(modresp)
+
+  
+  # check if there are any differences depending on whether participants
+  # were best explained by the feedback model or not
+  
+  # retrieve model fitting
+  model_fit<-read.csv("model_fitting_pilot.csv")
+  
+  # mark participants whose winning model was the feedback from the others
+  fittedData.exc$feedbBestM<-NA
+  for (n in 1: nrow(fittedData.exc)){
+   BestModel<- model_fit$BestModel[model_fit$PartNum==fittedData.exc$SubNum[n]]
+    if (BestModel == "RescorlaWagner_feedbALL"){
+      fittedData.exc$feedbBestM[n]<-1
+      
+    } else {
+      fittedData.exc$feedbBestM[n]<-0
+      
+    }
+  }
+  
+
+  # plot it PE by recog
+  PErespPlot<-ggplot(fittedData.exc, aes(x=PEresp, y=rec_acc))
+  PErespPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+              se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(feedbBestM~session) +ggtitle("effect of feedback-based PE on memory")
+  
+  # run the whole model
+  modbyMod<-glmer(rec_acc~PEresp*session*feedbBestM+(PEresp*session|SubNum),family=binomial,
+                  data = fittedData.exc) 
+  summary(modbyMod)                
+  Anova(modbyMod)
+  
+  # is there a quadratic?
+  modrespquad<-glmer(rec_acc~poly(PEresp,2)*session+(PEresp*session|SubNum),family=binomial,
+                 data = fittedData.exc[!is.na(fittedData.exc$PEresp),], 
+                 control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+  
+  summary(modrespquad)
+  
+  # only immed
+  modImm<-glmer(rec_acc~PEresp+(PEresp|SubNum),family=binomial,
+                data = fittedData.exc[fittedData.exc$session=="ImmediateRec",])
+  
+  summary(modImm)
+  
+  modDel<-glmer(rec_acc~PEresp+(PEresp|SubNum),family=binomial,
+                data = fittedData.exc[fittedData.exc$session=="DelayedRec",])
+  
+  summary(modDel)
+  
+  # only on the right side
+  modImmPos<-glmer(rec_acc~PEresp+(PEresp|SubNum),family=binomial,
+                data = fittedData.exc[fittedData.exc$session=="ImmediateRec"&fittedData.exc$acc==1,])
+  
+  summary(modImmPos)
+  
+  # only on the left side
+  modImmNeg<-glmer(rec_acc~PEresp+(PEresp|SubNum),family=binomial,
+                   data = fittedData.exc[fittedData.exc$session=="ImmediateRec"&fittedData.exc$acc==0,],
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+  
+  summary(modImmNeg)
+  
+  ####### now delayed
+  # only positive
+  modDelPos<-glmer(rec_acc~PEresp+(PEresp|SubNum),family=binomial,
+                   data = fittedData.exc[fittedData.exc$session=="DelayedRec"&fittedData.exc$acc==1,])
+  
+  summary(modDelPos)
+  
+  # only negative
+  modDelNeg<-glmer(rec_acc~PEresp+(PEresp|SubNum),family=binomial,
+                   data = fittedData.exc[fittedData.exc$session=="DelayedRec"&fittedData.exc$acc==0,])
+  
+  summary(modDelNeg)
+
+
+  ### Pe quantiles
+  quantPEresp<-quantile(fittedData.exc$PEresp, na.rm=T)
+  
+  fittedData.exc$PEquantresp<-NA
+  for (o in 1: nrow(fittedData.exc)){
+    if (!is.na(fittedData.exc$PEresp[o])){
+      if (fittedData.exc$PEresp[o]> quantPEresp[1] & fittedData.exc$PEresp[o]< (quantPEresp[2])){
+        fittedData.exc$PEquantresp[o]<-1
+        
+      }else if (fittedData.exc$PEresp[o]>= quantPEresp[2] & fittedData.exc$PEresp[o]< quantPEresp[3] ){
+        fittedData.exc$PEquantresp[o]<-2
+      }else if(fittedData.exc$PEresp[o]>=  quantPEresp[3] & fittedData.exc$PEresp[o]<quantPEresp[4] ){
+        fittedData.exc$PEquantresp[o]<-3
+      }else if(fittedData.exc$PEresp[o]>=quantPEresp[4]){
+        fittedData.exc$PEquantresp[o]<-4
+      }
+    }
+  }
+  
+  fittedData.exc$PEquantresp<-as.factor(fittedData.exc$PEquantresp)
+  
+  # take the se within-participant
+  data_agg<-fittedData.exc %>%
+    group_by(session, PEquantresp, SubNum) %>%
+    dplyr::summarise(rec_acc = mean(rec_acc, na.rm = T))
+  
+  library(Rmisc)
+  dat_summary <- summarySEwithin(data_agg,
+                                 measurevar = "rec_acc",
+                                 withinvars = c("PEquantresp", "session"), 
+                                 idvar = "SubNum")
+  
+  
+  gplotquant<-ggplot(data_agg[complete.cases(data_agg$PEquantresp),], aes( x=PEquantresp, y=rec_acc))+
+    geom_bar(aes(PEquantresp, rec_acc, fill = PEquantresp),
+             position="dodge",stat="summary", fun.y="mean", SE=T)+
+    
+    geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                  color = "black", width = 0.10, data=dat_summary)+
+    facet_wrap(session~.)+
+    scale_x_discrete(
+      labels=c(as.character(round(quantPEresp,2)), 0.99)
+    )
+  
+  print(gplotquant)
+  
+  ggsave( paste("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/figures/",
+                "PEchoiceByPE_quantiles_", setup, "_", modname, ".jpg", sep=""))
+  # at this point we need to take the error bars withing participant
+  
+  #---------------------------------------------------------------------------------------------#
+  #--------------------------- PE depending on the observation ---------------------------------#
+  #---------------------------------------------------------------------------------------------#
+  
+  fittedData.exc$PEobs<-NA
+  for (o in 1: nrow(fittedData.exc)){
+    if (fittedData.exc$object_cat[o]==1){
+      fittedData.exc$PEobs[o]<-fittedData.exc$Delta1[o]
+    }else if(fittedData.exc$object_cat[o]==2){
+      fittedData.exc$PEobs[o]<-fittedData.exc$Delta2[o]
+    }else if(fittedData.exc$object_cat[o]==3){
+      fittedData.exc$PEobs[o]<-fittedData.exc$Delta3[o]
+    }
+  }
+  
+  #summarise
+  fittedData.exc %>%
+    group_by (PE_level) %>%
+    summarise(mean=mean(PEobs, na.rm=T)) 
+  
+  # distribution of PE by condition
+  PEobsdistr<-ggplot(fittedData.exc, aes(x= PEobs, fill=PE_level))
+  print(
+    PEobsdistr+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE based on the observation")
+  )
+  
+  # by participant
+  ggplot(fittedData, aes(x=PEobs))+ geom_histogram()+
+    #aes(colour = factor(SubNum))
+    facet_wrap(.~SubNum)
+  
+  ggsave( paste("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/figures/",
+                "PEobs_distribution_", setup, "_", modname, ".jpg", sep=""))
+  
+  # plot it PE by recog
+  PErespPlot<-ggplot(fittedData.exc, aes(x=PEobs, y=rec_acc))
+  print(
+    PErespPlot+
+      geom_line(stat = "smooth", method="glm",formula=y~poly(x,2),method.args=list(family="binomial"),
+                se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+      geom_smooth(method="glm",formula=y~poly(x,2),method.args=list(family="binomial"), colour="black", se=T)+
+      theme(strip.text.x = element_text(size = 13))+
+      facet_wrap(.~session) +ggtitle("effect of feedback-based PE on memory")
+  )
+  
+  ggsave( paste("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/figures/",
+                "PEobs_by_recog_", setup, "_", modname, ".jpg", sep=""))
+  
+  # analyse
+  modobs<-glmer(rec_acc~poly(PEobs, 2)*session+(poly(PEobs,2)*session|SubNum),family=binomial,
+                data = fittedData.exc, 
+                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+  
+  summary(modobs)
+  
+  Anova(modobs)
+  
+  # immediate recognition
+  modobsIMM<-glmer(rec_acc~poly(PEobs,2)+(poly(PEobs,2)||SubNum),family=binomial,
+                   data = fittedData.exc[fittedData.exc$session=="ImmediateRec",]) 
+  
+  
+  summary(modobsIMM)
+  
+  # delayed recognition
+  modobsDel<-glmer(rec_acc~PEobs+(PEobs|SubNum),family=binomial,
+                   data = fittedData.exc[fittedData.exc$session=="DelayedRec",]) 
+  
+  
+  summary(modobsDel)
+  
+  ### Pe quantiles
+  quantPEobs<-quantile(fittedData.exc$PEobs, na.rm=T)
+  
+  fittedData$PEquantobs<-NA
+  for (o in 1: nrow(fittedData.exc)){
+    if (!is.na(fittedData.exc$PEobs[o])){
+      if (fittedData.exc$PEobs[o]> quantPEobs[1] & fittedData.exc$PEobs[o]< (quantPEobs[2])){
+        fittedData.exc$PEquantobs[o]<-1
+        
+      }else if (fittedData.exc$PEobs[o]>= quantPEobs[2] & fittedData.exc$PEobs[o]< quantPEobs[3] ){
+        fittedData.exc$PEquantobs[o]<-2
+      }else if(fittedData.exc$PEobs[o]>=  quantPEobs[3] & fittedData.exc$PEobs[o]<quantPEobs[4] ){
+        fittedData.exc$PEquantobs[o]<-3
+      }else if(fittedData.exc$PEobs[o]>=quantPEobs[4]){
+        fittedData.exc$PEquantobs[o]<-4
+      }
+    }
+  }
+  
+  # detach the Rmisc package
+  detach("package:Rmisc", unload=TRUE)
+  
+  
+  # take the se within-participant
+  data_agg2<-fittedData.exc %>%
+    group_by(session, PEquantobs, SubNum) %>%
+    dplyr::summarise(rec_acc = mean(rec_acc, na.rm = T))
+  
+  library(Rmisc)
+  dat_summary2 <- summarySEwithin(data_agg2,
+                                  measurevar = "rec_acc",
+                                  withinvars = c("PEquantobs", "session"), 
+                                  idvar = "SubNum")
+  
+  data_agg2$PEquantobs<-as.factor(data_agg2$PEquantobs)
+  gplotquantObs<-ggplot(data_agg2[complete.cases(data_agg2$PEquantobs),], aes( x=PEquantobs, y=rec_acc))+
+    geom_bar(aes(PEquantobs, rec_acc, fill = PEquantobs),
+             position="dodge",stat="summary", fun.y="mean", SE=T)+
+    
+    geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                  color = "black", width = 0.10, data=dat_summary2[complete.cases(dat_summary2),])+
+    facet_wrap(session~.)+
+    scale_x_discrete(
+      labels=c(as.character(round(quantPEobs,2))) )
+  
+  print(gplotquantObs)
+  
+  ggsave( paste("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/figures/",
+                "PEobsByPE_quantiles_", setup, "_", modname, ".jpg", sep=""))
+
+  # check if the model makes a diffeence
+  # run the whole model
+  modbyModObs<-glmer(rec_acc~PEobs*session*feedbBestM+(PEobs*session|SubNum),family=binomial,
+                  data = fittedData.exc,
+  control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+  summary(modbyModObs)                
+  Anova(modbyModObs)
+  
+  
+  # write the the files with the PE
+  write.csv(fittedData,paste( "AlldataPilot_", modname, ".csv", sep=""))  
+}
+ 

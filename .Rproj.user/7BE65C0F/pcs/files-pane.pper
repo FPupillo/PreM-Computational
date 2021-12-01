@@ -1,0 +1,17 @@
+{
+    "path" : "~/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/analysis_files",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        },
+        {
+            "ascending" : false,
+            "columnIndex" : 4
+        },
+        {
+            "ascending" : false,
+            "columnIndex" : 3
+        }
+    ]
+}

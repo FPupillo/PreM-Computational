@@ -1,0 +1,25 @@
+"","participant","iteration_index","scn_file","scn_cat","obj_cat_top","min_resp_top","max_resp_top","slider.response","slider.rt","rating_acc","corr_rat","group"
+"256",76,1,"stim/11.jpeg",1,"Music items",45,55,31,6.568000078,0,50,1
+"254",76,1,"stim/21.jpeg",2,"Household items",45,55,15,7.401000023,0,50,1
+"252",76,1,"stim/31.jpeg",3,"Music items",65,75,58,11.26899981,0,70,1
+"253",76,1,"stim/41.jpeg",4,"Music items",65,75,41,9.536000013,0,70,1
+"251",76,1,"stim/51.jpeg",5,"Household items",5,15,90,17.5769999,0,10,1
+"255",76,1,"stim/61.jpeg",6,"Music items",5,15,69,24.02499986,0,10,1
+"499",76,2,"stim/11.jpeg",1,"Music items",45,55,10,7.576999903,0,50,1
+"501",76,2,"stim/21.jpeg",2,"Household items",45,55,1,7.506000042,0,50,1
+"503",76,2,"stim/31.jpeg",3,"Music items",65,75,60,6.315999985,0,70,1
+"498",76,2,"stim/41.jpeg",4,"Music items",65,75,50,4.825999975,0,70,1
+"502",76,2,"stim/51.jpeg",5,"Household items",5,15,68,8.020999908,0,10,1
+"500",76,2,"stim/61.jpeg",6,"Music items",5,15,40,6.80099988,0,10,1
+"750",76,3,"stim/11.jpeg",1,"Music items",45,55,81,7.694000006,0,50,1
+"749",76,3,"stim/21.jpeg",2,"Household items",45,55,0,6.851999998,0,50,1
+"747",76,3,"stim/31.jpeg",3,"Music items",65,75,40,8.25,0,70,1
+"748",76,3,"stim/41.jpeg",4,"Music items",65,75,49,4.519999981,0,70,1
+"745",76,3,"stim/51.jpeg",5,"Household items",5,15,56,5.426999807,0,10,1
+"746",76,3,"stim/61.jpeg",6,"Music items",5,15,30,5.416000128,0,10,1
+"994",76,4,"stim/11.jpeg",1,"Music items",45,55,10,4.856000185,0,50,1
+"993",76,4,"stim/21.jpeg",2,"Household items",45,55,2,10.45700002,0,50,1
+"996",76,4,"stim/31.jpeg",3,"Music items",65,75,83,6.437000036,0,70,1
+"997",76,4,"stim/41.jpeg",4,"Music items",65,75,56,2.968999863,0,70,1
+"992",76,4,"stim/51.jpeg",5,"Household items",5,15,77,8.464999914,0,10,1
+"995",76,4,"stim/61.jpeg",6,"Music items",5,15,25,5.315000057,0,10,1

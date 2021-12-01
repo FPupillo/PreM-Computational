@@ -1,0 +1,40 @@
+cumAccbyScene<-function(dataframe){
+#--------------------------------------------------------------------------------------------------#
+# function to create cumulative accuracy for each scene separately
+# INPUT: it takes a dataframe for each scene 
+# OUTPUT: it returns a dataframe with the cumulative accuracy
+#--------------------------------------------------------------------------------------------------#
+  
+  currlist<-dataframe
+  
+  # create cumulative accuracy per scene
+  # first, loopt through participants
+  participants<-unique(dataframe$participant)
+  
+  currlistAll<-vector()
+  for (participant in participants){
+    
+  # subset
+  currfile<- currlist[currlist$participant==participant,]
+  
+  # first, create trial number for ordering later on
+  currlistPart<-vector()
+  # loop now through scenes
+  for (s in 1:max(unique(currlist$scene_cat))){
+  # first subset by scene
+  currlistssub<-currfile[currfile$scene_cat==s,]
+  # create trialnum by char
+  currlistssub$trialNbyscene<-1:nrow(currlistssub)
+  # calculatecumacc
+  currlistssub$cumAccbyScene<-cummean(currlistssub$trial_acc)
+  # append to the dataset
+  currlistPart<-rbind(currlistPart, currlistssub)
+  }
+  
+  # append the current participant with the global dataset
+  currlistAll<-rbind(currlistAll, currlistPart)
+  }
+  
+  return(currlistAll)
+  
+}

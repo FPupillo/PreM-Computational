@@ -1,0 +1,321 @@
+# script to simulate files according to the best model and compare it participant actual data: Phase 2
+
+rm(list=ls())
+
+library(dplyr)
+library(ggplot2)
+library(here)
+
+# exclude participants whose cumulative performance is below 0.70 percent over the last 10 congruent trials
+
+
+# retrieve functions
+# source("simulation_functions/simulate_RW_obsALL.R")
+# source("helper_functions/cumAccbyScene.R") 
+# source("helper_functions/getFiles.R") 
+cd<-getwd()
+source(("helper_functions/BICcompute.R"))
+source(("helper_functions/searchGlobal.R"))
+source(("helper_functions/softmax.R"))
+source("helper_functions/cumAccbyScene.R")
+source("helper_functions/getFiles.R")
+source("helper_functions/getcumAcc.R")
+
+
+
+setwd("simulation_functions2")
+simfun<-list.files()
+for (f in 1:length(simfun)){
+  source(simfun[f])
+}
+
+
+# likelihood functions
+setwd(paste(cd, "/likelihood_functions2",sep=""))
+likfun<-list.files()
+for (f in 1:length(likfun)){
+  source(likfun[f])
+}
+# fitting functions
+setwd(paste(cd, "/fitting_functions",sep=""))
+fitfun<-list.files()
+for (f in 1:length(fitfun)){
+  source(fitfun[f])
+}
+
+setwd(cd)
+
+participants<-32
+# retrieve the file with all the participants
+#fileAll<-read.csv("output_files/phase1.betalimit=30.initialQ=0.RescorlaWagner_obsALL.csv")
+
+#ileAll<-read.csv("output_files/phase1.betalimit=30.initialQ=0.RescorlaWagner_obsALL1n.csv")
+# get the mean and standard deviation for alpha and beta
+
+# list all the output files that start with "phase1"
+setwd(paste(cd, "/output_files", sep=""))
+
+files1<-list.files(pattern= c("ParameterEstimation.betalimit=10.*.csv$"))
+
+# observation all and dual lr are 7 and 11, respectively
+
+setwd(cd)
+
+mu<-c(0.80,0.10, 0.10)
+
+T<-20+80 # 20 for phase1 and 80 for phase2 
+
+# exclude participants that had less than 0.50 cumulative accuracy over the last 8 congruent trials
+# of strong prior condition
+
+exclusions<-getCumacc(files1)
+
+participants<-participants-length(exclusions)
+
+set.seed(134657)
+# loop through the files
+for (f in c(7,11)){
+  
+param<-read.csv(paste("output_files/",files1[f], sep=""))
+
+# get the beta limit
+betalimit<-as.numeric(substr(sub(".*betalimit=", "", files1[f]), 1, 2))
+
+# get the initial Q
+initialQ<-as.numeric(substr(sub(".*initialQ=", "", files1[f]), 1, 1))
+initialQ<-matrix(initialQ, ncol=3, nrow = 6)
+
+# initial Q_o is always zerp
+initialQ_o<-0
+initialQ_o<- matrix(initialQ, nrow =6, ncol=3)
+
+initialQ_o2<-0
+initialQ_o2<- matrix(initialQ, nrow =6, ncol=3)
+
+# get parameters
+alphaMean<-mean(param$alpha)
+alphaSD<-sd(param$alpha)
+betaMean<-mean(param$beta)
+betaSD<-sd(param$beta)
+
+# simulate the data using the parameters estimated by the model
+# first, create a dataframe without participants excluded
+paramExcl<-param[!param$PartNum %in% exclusions,]
+
+alphas<-paramExcl$alpha
+betas<-paramExcl$beta
+
+alphas_o<-NULL
+betas_o<-NULL
+
+# get alpha_c only if it is present
+if (!is.null(param$alpha_c)[1]){
+  if (!is.na(param$alpha_c)[1]){ # if the alpha_c is different from NA
+  alpha_oMean<-mean(param$alpha_c)
+  alpha_oSD<-sd(param$alpha_c)
+  #alphas_o<-abs(rnorm(n=participants, mean = alpha_oMean, sd = alpha_oSD))
+  alphas_o<-paramExcl$alpha_c
+  }
+}
+
+# the same for parameter beta_c
+if (!is.null(param$beta_c)){
+  beta_oMean<-mean(param$beta_c)
+  beta_oSD<-sd(param$beta_c)
+  #betas_o<-abs(rnorm(n=participants, mean = beta_oMean, sd = beta_oSD))
+  betas_o<-paramExcl$beta_c
+  
+} 
+
+# how many participants? the same as the original sample
+#participants<-nrow(param)
+# simulate parameters, from the mean and sd of the actual parameters
+#alphas<-abs(rnorm(n=participants, mean = alphaMean, sd = alphaSD))
+
+
+
+# get the model type
+modsub<-sub(".*RescorlaWagner_", "", files1[f])
+if (nchar(modsub)>20){ # if it is the dirichlet of the choicekernel
+  if (length(grep(pattern = "ChoiceKernel", modsub))>0){
+    modsub<-"ChoiceKernel.csv"
+    modeltype<-paste( substr(modsub, 1, nchar(modsub)-4), sep="")
+    simulatefunction<-get(paste("simulate_", modeltype, sep=""))
+    likelihoodfunction<-get(paste("lik_", modeltype, sep=""))
+    # get the simulation function
+    simulationfunction = get(paste("simulate_", modeltype,  sep=""))
+    
+  } else if (length(grep(pattern = "Dirichlet", modsub))>0){
+    modsub<-"Dirichlet.csv"
+    modeltype<-paste( substr(modsub, 1, nchar(modsub)-4), sep="")
+    simulatefunction<-get(paste("simulate_", modeltype, sep=""))
+    likelihoodfunction<-get(paste("lik_", modeltype, sep=""))
+    # get the simulation function
+    simulationfunction = get(paste("simulate_", modeltype,  sep=""))
+  }
+}else{
+  modeltype<-paste("RescorlaWagner_", substr(modsub, 1, nchar(modsub)-4), sep="")
+  # get the simulation function
+  modelsim<-substr(modeltype, 16, nchar(modeltype))
+  simulationfunction = get(paste("simulate_RW_", modelsim,  sep=""))
+}  
+print(paste("working on model", modeltype, sep=""))
+
+# get the likelihood function
+likelihoodfunction = get(paste("lik_", modeltype,  sep=""))
+ 
+ simAll<-vector()
+ 
+# create simulated data
+for (j in 1:participants){
+  
+  sim<-simulationfunction(T = T, mu = mu, alpha = alphas[j], beta  = betas[j], alpha_o = alphas_o[j], 
+                          beta_o = betas_o[j], initialQ = initialQ, initialQ_o = initialQ_o )
+  
+  # convert scene in scene_cat
+  names(sim)[1:2]<-c("scene_cat", "response")
+  # calculate accuracy
+  sim$acc<-NA
+  for (n in 1:nrow(sim)){
+    if (sim$response[n]==sim$object_cat[n]){
+    sim$acc[n]<-1}else{sim$acc[n]<-0}
+    
+  }
+  
+  # get cumulative accuracy by scene
+  sim<-cumAccbyScene(sim)
+  
+  sim$participant<-rep(j, nrow(sim))
+
+  simAll<- rbind(simAll, sim)
+  
+}
+ 
+# retrieve the files with actual participants data
+# select only files for phase 1
+ 
+files_1<-selPhase(1)
+setwd(cd)
+
+files_2<-selPhase(2)
+setwd(cd)
+
+# merge the two
+files<-rbind(files_1, files_2)
+
+exclusionfiles<-NA
+# exclude participants
+counter<-1
+for (h in 1:length(files)){
+  curfile<-files[h]
+  # substring the name
+  subfile<-substr(curfile, 5,6)
+  # check if it is equal to any number
+  if (any(exclusions==subfile)){
+    exclusionfiles[counter] <-files[h]
+    counter<-counter+1
+  }
+}
+
+# esclude those files
+files<-files[!files %in% exclusionfiles]
+
+partAll<-vector()
+for (j in 1:participants){
+  
+  # get the file of the participant for both the phase1 and phase2
+  currfile1<-read.csv(paste("trial_sequences/", files_1[j], sep=""))
+  currfile2<-read.csv(paste("trial_sequences/", files_2[j], sep=""))
+  
+  # bind them
+  currfile<-rbind(currfile1, currfile2)
+  # select only scenes 4, 5, or six
+  currfile<-currfile[currfile$scene_cat==4  | currfile$scene_cat==5  | currfile$scene_cat==6 ,]
+  # order it
+  currfile<-currfile[order(currfile$scene_cat),]
+  # get cumulative accuracy by scene
+  currfile<-cumAccbyScene(currfile)
+  # add participant number
+  currfile$participant<-rep(j, nrow(currfile))
+  # append to the dataframe
+  partAll<-rbind(partAll, currfile)
+}
+
+# we need to bind the two datasets (simulate vs actual)
+# order the partAll
+partAll<-partAll[, c(1,3,2,4,6,7, 8 )]
+ 
+simAll$type<-rep("simulated", nrow(simAll))
+partAll$type<-rep("actual", nrow(partAll))
+
+
+
+
+# bind the two
+dataAll<-rbind(simAll, partAll)
+
+str(dataAll)
+
+# to print, first bind them all
+# create a name for the output file
+name<-paste("output_files/simulatedVSempirical.", modeltype , "betalim = ", betalimit, sep="")
+
+pdf(paste(name, ".pdf", sep=""))
+
+dataAll$scene_cat<-as.factor(dataAll$scene_cat)
+# plot
+print(
+  ggplot(dataAll[dataAll$participant<10,], aes(x = trialNbyscene, y=cumAccbyScene, color = type))+ geom_line()+
+  facet_grid(scene_cat~participant)
+)
+
+print(
+ggplot(dataAll[dataAll$participant>10 & dataAll$participant<=20,], aes(x = trialNbyscene, y=cumAccbyScene, color = type))+ geom_line()+
+  facet_grid(scene_cat~participant)
+)
+
+print(
+ggplot(dataAll[dataAll$participant>20 & dataAll$participant<32 ,], aes(x = trialNbyscene, y=cumAccbyScene, color = type))+ geom_line()+
+  facet_grid(scene_cat~participant)
+)
+
+# get the standard error and cumulative accuracy for simALL
+Datawidesim<- simAll %>%
+  group_by( trialNbyscene) %>%
+  summarise(mean = mean(cumAccbyScene), sd = sd(cumAccbyScene)) %>%
+  mutate(type ="simulated" )
+
+# get se
+Datawidesim$se<-Datawidesim$sd/sqrt(32)
+
+# now for actual data
+Datawidepart<- partAll %>%
+  group_by( trialNbyscene) %>%
+  summarise(mean = mean(cumAccbyScene), sd = sd(cumAccbyScene)) %>%
+  mutate(type ="actual" )
+ 
+# get se
+Datawidepart$se<-Datawidepart$sd/sqrt(32)
+
+# bind them
+Datawide<-rbind(Datawidesim, Datawidepart)
+
+# # aggregate dataset by participant
+#  Datawide<- dataAll %>%
+#   group_by( trialNbyscene, type) %>%
+#   summarise(mean = mean(cumAccbyScene), sd = sd(cumAccbyScene), se = sd/sqrt(200))
+
+# by scene
+ print(
+ggplot(dataAll, aes(x = trialNbyscene, y=cumAccbyScene, color = type))+   stat_summary(fun.y="mean",geom="line")+
+  facet_wrap(scene_cat~.)
+)
+ print(
+ggplot(Datawide, aes(x = trialNbyscene, y=mean, color = type))+   stat_summary(fun.y="mean",geom="line")+ylim(c(0,1))+
+ # geom_errorbar(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), width=.5,
+  #              position=position_dodge(0.05))
+  geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2)
+)
+# suspend for 20 seconds before printing, to wait that all the graphs are printed
+dev.off()
+}

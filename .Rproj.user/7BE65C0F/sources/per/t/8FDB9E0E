@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1624604652377.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3726596316",
+    "id" : "8FDB9E0E",
+    "lastKnownWriteTime" : 1624438205,
+    "last_content_update" : 1624438205,
+    "path" : "~/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/02.modelComparison_comparefit.R",
+    "project_path" : "computational_model/02.modelComparison_comparefit.R",
+    "properties" : {
+        "cursorPosition" : "192,0",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

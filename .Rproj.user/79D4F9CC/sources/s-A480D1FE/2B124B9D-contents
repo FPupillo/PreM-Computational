@@ -1,0 +1,512 @@
+# variance partitioning.
+
+##########################################################################
+###################### variance partitioning #############################
+##########################################################################
+library(lme4)
+library(car) # for vif
+# load package for computing Rsquared
+library(performance)
+
+rm(list=ls())
+
+# load files
+# pilot
+DataAll<-read.csv("computational_model/output_files/fittedData_pilot_RWfeedb_PEchoice_PEobs.csv")
+#DataAll<-DataAll[DataAll$session=="ImmediateRec",]
+# first, do a model comparison and check whether we need more elements
+
+# first, baseline model
+
+
+pilot_base<-glmer(id_acc~ poly(PEobs,2)+poly(PEchoice,2)+
+                             # ( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                             ( 1|  SubNum),
+                           family = binomial,
+                           data = DataAll[!is.na(DataAll$PEchoice)&
+                                            !is.na(DataAll$PEchoice) &
+                                            DataAll$session=="ImmediateRec",])
+
+# add pilot base
+pilot_randPEobs<-glmer(id_acc~ poly(PEobs,2)+poly(PEchoice,2)+
+                    # ( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                    ( 1+PEobs|  SubNum),
+                  family = binomial,
+                  data = DataAll[!is.na(DataAll$PEchoice)&
+                                   !is.na(DataAll$PEchoice) &
+                                   DataAll$session=="ImmediateRec",])
+anova(pilot_base, pilot_randPEobs)
+
+# add randPEchoice
+pilot_randPEchoice<-glmer(id_acc~ poly(PEobs,2)+poly(PEchoice,2)+
+                         # ( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                         ( 1+PEchoice|  SubNum),
+                       family = binomial,
+                       data = DataAll[!is.na(DataAll$PEchoice)&
+                                        !is.na(DataAll$PEchoice) &
+                                        DataAll$session=="ImmediateRec",])
+
+anova(pilot_base, pilot_randPEchoice)
+
+pilot_all<-glmer(id_acc~ poly(PEobs,2)+poly(PEchoice,2)+
+                    # ( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                    ( 1|  SubNum),
+                  family = binomial,
+                  data = DataAll[!is.na(DataAll$PEchoice)&
+                                   !is.na(DataAll$PEchoice) &
+                                   DataAll$session=="ImmediateRec",])
+
+
+# check collinearity
+1/vif(PEAllMod)
+# trial acc and PE resp are multicollinear (correlated)
+
+# plot the two variables
+library(GGally)
+ggpairs(DataAll[, c("PEchoice", "PEobs")])
+
+# when the trial is correct, PE resp is the same as PE obs. 
+# when it is not correct, it is not the same, but it is strongly correlated. 
+
+pilot_choice<-glmer(id_acc~ poly(PEchoice,2)+
+                   #( 1+poly(PEchoice,2)| SubNum),
+                 ( 1| SubNum),
+                 family = binomial,
+                 data = DataAll[!is.na(DataAll$PEchoice)&
+                                  !is.na(DataAll$PEchoice) &
+                                  DataAll$session=="ImmediateRec",])
+
+pilot_obs<-glmer(id_acc~ poly(PEobs,2)+
+                 # ( 1+poly(PEobs,2)| SubNum),
+                ( 1| SubNum),
+                
+                family = binomial,
+                data = DataAll[!is.na(DataAll$PEchoice)&
+                                 !is.na(DataAll$PEchoice) &
+                                 DataAll$session=="ImmediateRec",])
+
+# we need to take the marginal (associated with fixed effect)
+
+#RsquaredPEobs<-r2_nakagawa(pilot_obs)[[2]]
+
+
+library(vegan)
+
+
+# [a+b+c]
+RsquaredAll<-r2_nakagawa(pilot_all)[[2]]
+
+# [a+b]
+RsquaredPEresp<-r2_nakagawa(pilot_choice)[[2]]
+
+# [b+c]
+RsquaredPEobs<-r2_nakagawa(pilot_obs)[[2]]
+
+# b<- ab+bc-abc
+b<- RsquaredPEresp+RsquaredPEobs -RsquaredAll
+
+#a<-ab-b
+a<-RsquaredPEresp-b
+
+#c<-bc-b
+c<-RsquaredPEobs-b
+
+# create Venn diagram
+x<-list(a, b, c)
+
+library(VennDiagram)
+grid.newpage()  
+draw.pairwise.venn(round(a+b, 6),round(c+b, 6),round(b, 10), fill=c("red", "yellow"),
+                   category =c("PE choice", "PE obs"))
+
+
+# model comparison
+# start from PE obs
+anova(pilot_all, pilot_obs)
+
+anova(pilot_all, pilot_choice)
+
+
+###################################################################################################################
+# three
+DataAll<-read.csv("computational_model/output_files/fittedData_three_RWfeedb_PEchoice_PEobs.csv")
+
+
+three_base<-glmer(id_acc~ poly(PEobs,2)+poly(PEchoice,2)+
+                    # ( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                    ( 1|  SubNum),
+                  family = binomial,
+                  data = DataAll[!is.na(DataAll$PEchoice)&
+                                   !is.na(DataAll$PEchoice) &
+                                   DataAll$session==1,])
+
+
+# add pilot base
+three_randPEobs<-glmer(id_acc~ poly(PEobs,2)+poly(PEchoice,2)+
+                         # ( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                         ( 1+PEobs|  SubNum),
+                       family = binomial,
+                       data = DataAll[!is.na(DataAll$PEchoice)&
+                                        !is.na(DataAll$PEchoice) &
+                                        DataAll$session==1,])
+anova(three_base, three_randPEobs)
+# keep it
+
+# nmow rand PEchoice
+three_randPEchoice<-glmer(id_acc~ poly(PEobs,2)+poly(PEchoice,2)+
+                    # ( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                    ( 1+PEchoice|  SubNum),
+                  family = binomial,
+                  data = DataAll[!is.na(DataAll$PEchoice)&
+                                   !is.na(DataAll$PEchoice) &
+                                   DataAll$session==1,])
+
+anova(three_base, three_randPEchoice)
+# nope
+
+
+three_all<-glmer(id_acc~ poly(PEobs,2)+poly(PEchoice,2)+
+                    # ( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                    ( 1+PEobs|  SubNum),
+                  family = binomial,
+                  data = DataAll[!is.na(DataAll$PEchoice)&
+                                   !is.na(DataAll$PEobs) &
+                                   DataAll$session==1,])
+
+  # check collinearity
+1/vif(PEAllMod)
+
+# plot the two variables
+library(GGally)
+ggpairs(DataAll[, c("PEchoice", "PEobs")])
+
+# when the trial is correct, PE resp is the same as PE obs. 
+# when it is not correct, it is not the same, but it is strongly correlated. 
+
+
+
+three_choice<-glmer(id_acc~ poly(PEchoice,2)+
+                   ( 1+PEobs| SubNum), 
+                 family = binomial,
+                 data = DataAll[!is.na(DataAll$PEchoice)&
+                                  !is.na(DataAll$PEobs) &
+                                  DataAll$session==1,])
+                 
+three_obs<-glmer(id_acc~ poly(PEobs,2)+
+                  ( 1+PEobs| SubNum), 
+                family = binomial,
+                data = DataAll[!is.na(DataAll$PEchoice)&
+                                 !is.na(DataAll$PEobs)&
+                                 DataAll$session==1,])
+# we need to take the marginal (associated with fixed effect)
+
+#RsquaredPEobs<-r2_nakagawa(PEobsMod)[[2]]
+
+
+library(vegan)
+
+
+# [a+b+c]
+RsquaredAll<-r2_nakagawa(three_all)[[2]]
+
+# [a+b]
+RsquaredPEresp<-r2_nakagawa(three_choice)[[2]]
+
+# [b+c]
+RsquaredPEobs<-r2_nakagawa(three_obs)[[2]]
+
+# b<- ab+bc-abc
+b<- (RsquaredPEresp+RsquaredPEobs) -RsquaredAll
+
+#a<-ab-b
+a<-RsquaredPEresp-b
+
+#c<-bc-b
+c<-RsquaredPEobs-b
+
+# create Venn diagram
+x<-list(a, b, c)
+
+library(VennDiagram)
+grid.newpage()  
+draw.pairwise.venn(round(a+b, 6),round(c+b, 6),round(b, 10), fill=c("red", "yellow"),
+                   category =c("PE choice", "PE obs"))
+
+
+  # model comparison
+# start from PE obs
+anova( three_obs,three_all)
+
+anova(three_all, three_choice)
+
+#################################################################################################
+### Pilot and three together
+
+DataAll<- read.csv("computational_model/output_files/fittedData_pilot-three_RWfeedb_PEchoice_PEobs.csv")
+
+
+
+# plot the two variables
+library(GGally)
+ggpairs(DataAll[, c("PEchoice", "PEobs")])
+
+
+PEAllMod<-glmer(id_acc~ poly(PEchoice,2)+poly(PEobs,2)+
+                  #( 1+poly(PEchoice,2)+poly(PEobs,2)|  SubNum),
+                ( 1|  SubNum),
+                family = binomial,
+                data = DataAll[!is.na(DataAll$PEchoice)&
+                                 !is.na(DataAll$PEobs) &
+                                 DataAll$session=="ImmediateRec",],
+                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+# check collinearity
+1/vif(PEAllMod)
+
+
+# when the trial is correct, PE resp is the same as PE obs. 
+# when it is not correct, it is not the same, but it is strongly correlated. 
+
+PErespMod<-glmer(id_acc~ poly(PEchoice,2)+
+                   #( 1+poly(PEchoice,2)| SubNum), 
+                 ( 1| SubNum), 
+                 family = binomial,
+                 data = DataAll[!is.na(DataAll$PEchoice)&
+                                  !is.na(DataAll$PEobs) &
+                                  DataAll$session=="ImmediateRec",],
+                 control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+                 
+PEobsMod<-glmer(id_acc~ poly(PEobs,2)+
+                  #( 1+poly(PEobs,2)| SubNum),
+                ( 1| SubNum),
+                family = binomial,
+                data = DataAll[!is.na(DataAll$PEchoice)&
+                                 !is.na(DataAll$PEobs)&
+                                 DataAll$session=="ImmediateRec",],
+                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+                # we need to take the marginal (associated with fixed effect)
+
+#RsquaredPEobs<-r2_nakagawa(PEobsMod)[[2]]
+
+
+library(vegan)
+
+
+# [a+b+c]
+RsquaredAll<-r2_nakagawa(PEAllMod)[[2]]
+
+# [a+b]
+RsquaredPEresp<-r2_nakagawa(PErespMod)[[2]]
+
+# [b+c]
+RsquaredPEobs<-r2_nakagawa(PEobsMod)[[2]]
+
+# b<- ab+bc-abc
+b<- (RsquaredPEresp+RsquaredPEobs) -RsquaredAll
+
+#a<-ab-b
+a<-RsquaredPEresp-b
+
+#c<-bc-b
+c<-RsquaredPEobs-b
+
+# create Venn diagram
+x<-list(a, b, c)
+
+library(VennDiagram)
+grid.newpage()  
+
+draw.pairwise.venn(round(a+b, 6),round(c+b, 6),round(b, 10), fill=c("red", "yellow"),
+                   category =c("PE choice", "PE obs"))
+
+
+# model comparison
+# start from PE obs
+anova(PEobsMod, PEAllMod)
+
+anova(PErespMod, PEAllMod)
+
+
+
+
+# # now add accuracy
+# PEAllMod<-glmer(id_acc~ PEresp+trial_acc+( 1+PEresp+trial_acc| SubNum), family = binomial, data = DataAll)
+# 
+# # check collinearity
+# 1/vif(PEAllMod)
+# # trial acc and PE resp are multicollinear (correlated)
+# 
+# # plot the two variables
+# library(GGally)
+# ggpairs(DataAll[, c("PEresp", "PEobs", "trial_acc")])
+# 
+# 
+# PEacc<-glmer(id_acc~ trial_acc+( 1+trial_acc|  SubNum), family = binomial, data = DataAll)
+# summary(PEacc)
+# 
+# PEresp<-glmer(id_acc~PEresp +( 1+PEresp|  SubNum), family = binomial, data = DataAll)
+# summary(PEresp)
+# 
+# # [abc]
+# abc<-r2_nakagawa(PEAllMod)[[2]]
+# 
+# # [ab]
+# ab<-r2_nakagawa(PEresp)[[2]]
+# 
+# # [bc]
+# bc<-r2_nakagawa(PEacc)[[2]]
+# 
+# # b<- ab+bc-abc
+# b<- ab+bc -abc
+# 
+# #a<-ab-b
+# a<-ab-b
+# 
+# #c<-bc-b
+# c<-bc-b
+# 
+# # plot
+# grid.newpage()  
+# draw.pairwise.venn(a+b,c+b,b, fill=c("red", "yellow"),
+#                    category =c("PE choice", "acc"))
+
+
+#################################### test it statistically
+# try permutation test
+# number of perfmutation: 1000
+# retrieve the file with the permutations
+perm<-read.csv("computational_model/output_files/permutations.Pilot.Three.csv")
+str(perm)
+
+hist(perm$PEchoice)
+
+# in order to find whether it is significant or not, we need a function
+cutoff<- function(value, percent){
+  # function that finds the cutoff score depending on a distribution
+  # and a percentile
+  
+  # sort value
+  value<-sort(value)
+  
+  # take the [percent] percentile
+  percentile<-percent*length(value)
+  
+  cutoff<-value[percentile]
+  
+  return(cutoff)
+}
+
+# create another function that returns how significant it is
+cutoffsig<-function(PEkind, actualvalue){
+  # function that returns how likely it is observing a certain variance
+  # if it was obtained at chance (permutations)
+  #
+  # inputs: PEkind - the type of PE (resp, obs). 
+  #         actual value - the value we want to test for significance
+  # output: significance level - the probability that our value was 
+  #         drawn from a distribution at chance (permutated)
+  # -----------------------------------------------------------------
+  
+  # sort value
+  PEkind<-sort(PEkind)
+  
+  # count how many elements are above that value in the distribution
+  numbersmore<-sum(PEkind>actualvalue)
+  
+  # divide by the overall number of cases
+  pvalue<-numbersmore/length(PEkind)
+  
+  return(pvalue)
+  
+}
+# is our unique variance for PEresp more than cutoff?
+cutoffsig(perm$PEchoice, a)
+
+cutoffsig(perm$PEobs, c)
+
+# let's do it manually first
+# redundancy analysis
+# fractions [a+b+c]:
+rda.all<-rda(id_acc~ PEresp+PEobs+session, data = fittedData)
+# fractions [a+b]
+rda.resp<-rda(id_acc~ PEresp, data = fittedData)
+# fractions [b+c]
+rda.obs<-rda(id_acc~ PEobs, data = fittedData)
+
+# calculate variations explained by individual fractions
+RsquareAdj (rda.all)
+# $r.squared
+# [1] 0.001395712
+# 
+# $adj.r.squared
+# [1] 0.001130935
+abc <- RsquareAdj (rda.all)$adj.r.squared
+
+
+# fraction [a+b]
+RsquareAdj (rda.resp)
+#$r.squared
+# [1] 0.001368876
+# 
+# $adj.r.squared
+# [1] 0.001236502
+ab <- RsquareAdj (rda.resp)$adj.r.squared
+
+# fraction [b+c]
+RsquareAdj (rda.obs)
+# $r.squared
+# [1] 0.0005126775
+# 
+# $adj.r.squared
+# [1] 0.0003801897
+bc <- RsquareAdj (rda.obs)$adj.r.squared
+
+# In this way, we calculated adjusted R2 of fractions [a+b+c], [a+b] and [b+c]. 
+# To calculate values for individual fractions [a], [b] and [c], we need to do a simple subtractions:
+
+b<- ab+bc -abc
+a<-ab-b
+c<-bc-b
+
+a*100
+b*100
+c*100
+
+# use varpart
+mod<-varpart(id_acc, ~PEresp, ~PEobs, data = fittedData)
+mod
+
+plot (mod, digits = 2, Xnames = c('PEresp', 'PEobs'), bg = c('navy', 'tomato'))
+
+# get both in one model
+mod1<-glmer(id_acc~PEobs+PEresp+(1 +PEobs+PEresp| SubNum), family = binomial, data = fittedData)
+
+summary(mod1)
+
+library(powerlmm)
+get_VPC(mod1)
+# Read in data
+# ROI <- ROI_labels[cROI]
+# data_epi <- read.csv2(paste(data_dir, "epi_RDM_", ROI, ".csv", sep=""), sep=",", header=F,stringsAsFactors=FALSE)
+# data_epi <- as.vector(data.matrix(data_epi))
+# 
+# # Variance partitioning
+# mod <- varpart(data_epi, ~ mod_scn, ~mod_obj, data=codes)
+# mod
+
+# fraction [a]:
+rda.scn_only <- rda (data_epi ~ mod_scn + Condition (mod_obj), data = codes)
+# fraction [c]:
+rda.obj_only <- rda (data_epi ~ mod_obj + Condition (mod_scn), data = codes)
+anova(rda.obj_only)
+
+mod
+
+# what if we aggregate by PE?
+library(dplyr)
+
+dataAgg<-fittedData%>%
+  group_by(, SubNum)%>%
+  summarise(mean = mean(PEresp, na.rm=T))

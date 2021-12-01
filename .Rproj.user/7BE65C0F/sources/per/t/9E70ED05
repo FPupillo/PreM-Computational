@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1625567512490.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "9E70ED05",
+    "lastKnownWriteTime" : 1625564441,
+    "last_content_update" : 1625567512490,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "2562692F",
+        "caption" : "currdf",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=currdf&cache_key=2562692F",
+        "displayedObservations" : 168,
+        "environment" : "",
+        "expression" : "currdf",
+        "object" : "currdf",
+        "preview" : 0,
+        "totalObservations" : 168,
+        "variables" : 51
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

@@ -1,0 +1,32 @@
+{
+    "id": "088996D1",
+    "path": null,
+    "project_path": null,
+    "type": "r_dataframe",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1626261111132.0,
+    "source_on_save": false,
+    "relative_order": 11,
+    "properties": {
+        "expression": "Q",
+        "caption": "Q",
+        "totalObservations": 1,
+        "displayedObservations": 1,
+        "variables": 3,
+        "cacheKey": "B2060F26",
+        "object": "Q",
+        "environment": "",
+        "contentUrl": "grid_resource/gridviewer.html?env=&obj=Q&cache_key=B2060F26&max_cols=50",
+        "preview": 0
+    },
+    "folds": "",
+    "lastKnownWriteTime": 3906085671771578416,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1626261111132,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -1,0 +1,254 @@
+#------------------------------------------------------------------------------------------------#
+# script that fit the winning models to each dataset and print the outputs
+#
+# this version is for the priors setup 
+#------------------------------------------------------------------------------------------------#
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+rm(list=ls())
+library(here)
+cd<-getwd()
+# source the files with the function
+source(("computational_model/helper_functions/BICcompute.R"))
+source(("computational_model/helper_functions/searchGlobal.R"))
+source(("computational_model/helper_functions/softmax.R"))
+source(("computational_model/helper_functions/getFiles.R"))
+source(("computational_model/helper_functions/modelFunPhase2.R"))
+source(("computational_model/helper_functions/getResp.R"))
+source(("computational_model/helper_functions/getProbStrongWeak.R"))
+source(("computational_model/helper_functions/getx.R"))
+source(("computational_model/helper_functions/getU.R"))
+source(("computational_model/helper_functions/fixnames.R"))
+source(("computational_model/helper_functions/getobs.R"))
+source(("computational_model/helper_functions/getQsPhase1.R"))
+
+
+
+# likelihood functions
+setwd("computational_model/likelihood_functions")
+likfun<-list.files()
+for (f in 1:length(likfun)){
+  source(likfun[f])
+}
+# fitting functions
+setwd(paste(cd, "/computational_model/fitting_functions",sep=""))
+fitfun<-list.files()
+for (f in 1:length(fitfun)){
+  source(fitfun[f])
+}
+
+setwd(cd)
+
+# very important, the setup
+setup <-"priors"
+
+# select only phase 1
+phase1Files<- read.csv2("premup-priors/outputs/group_level/group_task-learning.csv",sep=";",
+                        header=T,stringsAsFactors=FALSE)
+
+
+# phase 2
+phase2Files<- read.csv2("premup-priors/outputs/group_level/share/group_task-rec.csv",sep=";",
+                        header=T,stringsAsFactors=FALSE)
+
+# retrieve the winning models
+winMod<-read.csv("computational_model/winning_mods.csv")
+
+# select the models of the setup
+winMod<-winMod[winMod$setup==setup,c ("BIC", "LL")]
+
+# unlist
+winMod<-as.character(unlist(winMod))
+
+#---------------------------------------Phase1-----------------------------------------------------#
+
+# loop over mod, for phase 1
+for(mod in winMod){
+  
+  # load likelihood function
+  likelihoodfunction = get(paste("lik_", mod, sep=""))
+  
+  # load fitting function
+  fittingfunction = get(paste("fit_", mod, sep=""))
+  
+  # getparameters
+  filename<-paste("premup-", setup, "/outputs/group_level/computational_model",
+                  "/ParameterEstimation.betalimit=10.initialQ=0.", mod, ".csv", sep="")
+  
+  # read the file with the parameters
+  param<-read.csv(filename)
+  
+
+  # what subjects?
+  participants<-unique(phase1Files$participant)
+  # create an empty variable that will be the dataset with all participants' data
+  
+  
+  dataAll<-vector()
+  # for each subject
+  for (j in 1:length(participants)){
+    tryCatch({
+      
+      print(paste("working on participant", participants[j]))
+      
+      # current participant
+      SubNum<-participants[j]
+      
+      # subset file. We need first to fit to participants at phase1
+      file1<-phase1Files[phase1Files$participant==participants[j],]
+      
+      # fix names
+      file1<-fixnames(file1)
+      
+      # get parameters
+      parameters<-param[param$PartNum==SubNum,]
+      #---------------------------------------------------------------------------------------------#
+      #---------------------------------extract parameters -----------------------------------------#
+      #---------------------------------------------------------------------------------------------#
+      alpha<-parameters$alpha
+      beta<-parameters$beta
+      alpha_c<-parameters$alpha_c
+      beta_c<-parameters$beta_c
+      initialQ <- matrix(0, ncol = 2, nrow = 6)
+      initialQ2 <- matrix(0, ncol = 2, nrow = 6)
+      #---------------------------------------------------------------------------------------------#
+      #---------------------------------------------------------------------------------------------#
+      
+      # fit the models
+      # first, fit the data from phase1
+      if (length(formals(likelihoodfunction))<5){       # bayesian model
+        
+        data1<-likelihoodfunction(Data = file1, beta = beta,
+                                  print =3, initialQ =  initialQ)
+        
+      } else if (length(formals(likelihoodfunction))==5){ # single learning rate model
+        
+        data1<-likelihoodfunction(Data = file1, alpha = alpha, beta = beta,
+                                  print =3, initialQ = initialQ)
+        
+      } else {                                              # dual model                                           
+        
+        data1<-likelihoodfunction(Data = file1, alphapos = alpha, alphaneg = alpha_c, beta = beta,
+                                  print =3, initialQ = initialQ)
+        
+      }
+      
+      # create subjnum variable
+      data1$SubNum<-participants[j]
+      
+      # bind them with the whole dataset
+      dataAll<-rbind(dataAll, data1)
+      
+    }, error = function(e) { print(paste("problem with number", j))})
+    
+
+  }
+  
+  # save the data
+  write.csv(dataAll, paste("computational_model/output_files/", "fittedData.", setup, ".Phase1.",mod, 
+                           ".csv", sep=""), row.names = F)
+  #------------------------------------Phase2------------------------------------------------------#
+  dataAll<-vector()
+  for (j in 1:length(participants)){
+    tryCatch({
+  
+      # subset file. We are using phase 2 to derive parameters
+      file2<-phase2Files[phase2Files$participant.y==participants[j],]
+      
+      #---------------------------------------------------------------------------------------------#
+      # change names
+      # change name of the response variable
+      file2$response<- file2$key_resp.keys
+      # object category
+      file2$object_cat<-file2$obj_cat_num
+      # change name to scene categ
+      file2$scene_cat<-file2$scn_cat
+      # delete NAs
+      file2<-file2[!is.na(file2$response),]
+      # convert trial response
+      for (n in 1: nrow(file2)){
+        if (file2$response[n] == "left"){
+          file2$response[n] <- (1)
+        } else if (file2$response[n] == "right"){
+          file2$response[n] <- (2)
+        } else if (file2$response[n] == ""){
+          file2$response[n] <-(0)
+        }
+      }
+      file2$response<-as.numeric(file2$response)
+      #---------------------------------------------------------------------------------------------#
+
+      # get parameters
+      parameters<-param[param$PartNum==SubNum,]
+      
+      #---------------------------------------------------------------------------------------------#
+      #---------------------------------extract parameters -----------------------------------------#
+      #---------------------------------------------------------------------------------------------#
+      alpha<-parameters$alpha
+      beta<-parameters$beta
+      alpha_c<-parameters$alpha_c
+      beta_c<-parameters$beta_c
+      initialQ <- matrix(0, ncol = 2, nrow = 6)
+      initialQ2 <- matrix(0, ncol = 2, nrow = 6)
+      #---------------------------------------------------------------------------------------------#
+      #---------------------------------------------------------------------------------------------#
+      
+      
+      #---------------------------------------------------------------------------------------------#
+      # get the last Qs at phase 1, that will be the initial Q in Phase2
+      # first, fit the data from phase1
+      if (length(formals(likelihoodfunction))<5){       # bayesian model
+        
+        data1<-likelihoodfunction(Data = file1, beta = beta,
+                                    print =3, initialQ =  initialQ)
+        
+      } else if (length(formals(likelihoodfunction))==5){ # single learning rate model
+        
+        data1<-likelihoodfunction(Data = file1, alpha = alpha, beta = beta,
+                                    print =3, initialQ = initialQ)
+        
+      } else {                                              # dual model                                           
+        
+        data1<-likelihoodfunction(Data = file1, alphapos = alpha, alphaneg = alpha_c, beta = beta,
+                                    print =3, initialQ = initialQ)
+        
+      }
+      
+      # now get the initial Qs for phase2
+      initialQ<-getQsPhase1(data1)
+      
+      # fit to data
+      if (length(formals(likelihoodfunction))<5){       # bayesian model
+        
+        fitdata<-likelihoodfunction(Data = file2, beta = beta,
+                                    print =3, initialQ =  initialQ)
+        
+      } else if (length(formals(likelihoodfunction))==5){ # single learning rate model
+        
+        fitdata<-likelihoodfunction(Data = file2, alpha = alpha, beta = beta,
+                                    print =3, initialQ = initialQ)
+        
+      } else {                                              # dual model                                           
+        
+        fitdata<-likelihoodfunction(Data = file2, alphapos = alpha, alphaneg = alpha_c, beta = beta,
+                                    print =3, initialQ = initialQ)
+        
+      }
+      
+      # create subjnum variable
+      fitdata$SubNum<-participants[j]
+      
+      # bind them with the whole dataset
+      dataAll<-rbind(dataAll, fitdata)
+      
+    }, error = function(e) { print(paste("problem with number", j))})
+  }
+  
+  
+  # save the data
+  write.csv(dataAll, paste("computational_model/output_files/", "fittedData.", setup, ".Phase2.",mod, 
+                           ".csv", sep=""), row.names = F)
+}
+

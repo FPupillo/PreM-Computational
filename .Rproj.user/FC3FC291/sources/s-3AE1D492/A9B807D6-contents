@@ -1,0 +1,46 @@
+#library(pracma)
+
+fit_all<-function(data,alphaBound, betaBound,alpha_cBound,beta_cBound,
+                  initialQ){
+  
+  # ---------------------------------------------------------------------------#
+  # This function fits all the model to a dataset and return the best one and 
+  # the BIC 
+  # 
+  # Input    
+  #   Data: a long dataset where each row represents a trial of simulated data
+  #   alphaBound<- a two-element vector with upper and lower boundaries for the
+  #               alpha parameter     
+  #   betaBound<- a two-element vector with upper and lower boundaries 
+  #               for the beta parameter 
+  #   alpha_cBound<- a two-element vector with upper and lower boundaries for
+  #               the second alpha param
+  #   beta_cBound<- a two-element vector with upper and lower boundaries 
+  #               for the second alpha param
+  #   initialQ <- values at which the Qs are initiated 
+  #   initialCK<- initial value of the choice kernel
+  #   initialQ_o <- values at which the Qs are initiated for the second model
+  # 
+  #  "iBEST": avector indicating which model is the best
+  # ---------------------------------------------------------------------------#
+  
+  alphaposBound<-alphaBound
+  alphanegBound<-alpha_cBound
+  # initialize the Bic vector
+  BIC<-vector()
+  
+  print("Fitting bayesian model")
+  BIC[1]<-fit_OptimalBayesian(data, betaBound, initialQ)[[3]]
+  print("Fitting obsALL model")
+  BIC[2]<-fit_RW_obsALL(data,alphaBound, betaBound, initialQ )[[3]]
+  print("Fitting feedb model")
+  BIC[3]<-fit_RW_feedb(data,alphaBound, betaBound, initialQ )[[3]]
+  print("Fitting feedb model")
+  
+  # which model had the best fit?
+  iBest<-as.numeric(BIC==min(BIC))
+  
+  # what was the best Bic?
+  return (iBest)
+
+}

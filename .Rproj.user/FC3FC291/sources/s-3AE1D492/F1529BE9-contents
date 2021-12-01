@@ -1,0 +1,649 @@
+\documentclass[a4paper,12pt]{article} 			% class, page size, fontsize 
+\usepackage[english]{babel}
+\usepackage{layouts}
+\usepackage{soul, color}
+\usepackage{amsmath} 							% math fonts
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage[mathscr]{euscript}
+\usepackage{hyperref}
+\hypersetup{colorlinks = true, linkcolor = red, citecolor = blue} 
+\usepackage{cleveref}
+\usepackage{graphicx}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage[T1]{fontenc}
+\usepackage{authblk}							% author block
+\usepackage[utf8]{inputenc}
+\usepackage{csquotes}
+\usepackage[round]{natbib}						% BibTex Layout
+%\usepackage{appendix}		% Appendix
+\usepackage{caption}
+\usepackage{algorithm,algcompatible,amsmath}	% algorithm package
+\algnewcommand\INPUT{\item[\textbf{Input:}]}	% algorithm command declaration
+\algnewcommand\OUTPUT{\item[\textbf{Output:}]}	% algorithm command declaration
+%\usepackage{lineno}
+%\linenumbers
+%\graphicspath{{/Users/Rasmus/Dropbox/pivotal/pv_analyses/}}
+%\usepackage{multirow}
+%\usepackage{multibib} % for splitting references between main text and supplementary material
+%\newcites{SM}{SM References} % for referencing supplementary
+\DeclareUnicodeCharacter{2060}{\nolinebreak}
+
+%%%%%%%%%% START DOCUMENT
+
+\title{Prediction Error and Episodic Memory - Insights from Computational Models}
+
+\author[1]{Francesco Pupillo}
+\author[1]{Javier Ortiz-Tudela}
+\author[2]{Rasmus Bruckner}
+\author[1]{Yee Lee Shing}
+\affil[1]{Goethe-Universität Frankfurt}
+\affil[2]{Freie Universität Berlin}
+\date{November 2021}
+
+\begin{document}
+\tableofcontents
+\setlength{\parindent}{10ex}
+%\newgeometry{a4paper, top=25mm, left=25mm, right=25mm,bottom=30mm,
+%headsep=10mm, footskip=12mm}
+
+\maketitle
+
+\begin{abstract}
+\noindent
+Predictive processing accounts suggest that our brain constantly tries to match top-down internal representations with bottom-up incoming information from the environment. Through the extraction of regularities, prior expectations of varying strength are formed and later used to make predictions. Information encountered in the environment can either match or violate these predictions, leading to varying degrees of prediction error. Theoretical and computational models assume significant, beneficial effects of prediction error on learning and memory. Nevertheless, very little is know on the effects of prediction error on memory encoding. Therefore, the aim of the present investigation is to examine how prediction error at encoding influences subsequent episodic memory. We first used a contingency-learning paradigm to establish different levels of priors for context-object category associations. In the encoding phase that followed, participants were asked to predict the category of the object that will be presented as cued by the context. The objects that were then shown could either match or violate their previously learned expectations. Finally, participants were asked to complete a surprise recognition test. We used a reinforcement learning model to derive subject-specific trial-to-trial estimates of prediction error. Results showed that prediction error at encoding influenced subsequent memory as a function of the outcome of participants’ predictions (correct vs incorrect). Precisely, when participants correctly predicted the object category, stronger prediction error (as an outcome of weak prior) led to enhanced memory. In contrast, when participants incorrectly predicted the object category, stronger prediction error (as an outcome of strong prior) led to impaired memory. These results suggests a computationally specific influence of prediction error on memory formation, revealing the important moderating role of prediction accuracy.     
+\end{abstract}
+
+%%%%%%%%%% INTRODUCTION
+
+In our daily interaction with the environment we are confronted with a great amount of information which cannot be all processed in detail, given the limited resources of our cognitive systems. In order to simplify the complexity of the world, our brain tries to extract the regularities in order to be able to react to environmental stimuli in advantageous ways. One way of extracting regularities is to rely on repetitions and associations of events, orgainized in schemas which guide behaviour and the creation of increasingly complex knowledge \citep{Ghosh2014, Tse2007, VanKesteren2012}. For example, we can learn that in the bar where we usually have our morning coffee the espresso is really good while the cappuccino tends to be too hot. Repeated exposure to this situation will guide us to preferably order an espresso, rather than a cappuccino.\par  
+Events can sometimes deviate from our expectations. We may order a burnt espresso in our familiar coffee shop, or a very good one in a shop in which we did not have a strong expectations. These schema-deviant events are thought to generate a prediction error (PE) and are assumed to be represented differently from schema-congruent events \citep{Henson2010, VanKesteren2012}. While it is well known that PE promotes learning by enhancing updating of prior knowledge \citep{Ergo2020, Friston2018}⁠, its effects on the formation of new memories are still not fully understood. \par
+According to theoretical and computational accounts, events that violate prior expectations   should improve encoding by promoting the formation of more distinct memory traces, in order to better guide future behaviour and avoid catastrophic interference \citep{McClelland1995a, VanKesteren2012}. However, studies investigating the interplay of memory encoding and PE show contrasting results. In fact, some studies have found that information that is congruent with prior knowledge tends to be better remembered than incongruent one \citep{Bein2015,BrodGarvinShingYee2019}⁠, while other studies have found that unpredicted events may be better remembered that predicted ones \citep{Greve2017,Kafkas2018}.\par
+The study of the relationship between prior expectations and learning has also benefitted from the use of computational models.
+Investigations on the neural mechanisms underlying learning have shown that brain activity reflects values used in computational reinforcement learning models \citep{Sutton1998}. In particular, it has been shown that firing patterns of mesencephalic dopamine neurons and also BOLD signal in the striatum resemble a PE signal used in reinforcement learning models \citep{Daw2011, Schultz1997, McClure2003}. This dopaminergic-dependent PE is thought to to inform future predictions by indicating deviations between observed and predicted outcomes \citep{Daw2013, Niv2008, Rangel2008a, Rushworth2008}, encouraging the repetition of actions that are better than expected (positive PE) and discouraging the repetition of actions that are worse than expected (negative PE, \cite{Schultz2016, Steinberg2013}).  An emerging line of research examines the relation between prediction errors and long term memory formation as a potential mechanism that explains interactions between memory and learning. \par
+In the field of reinforcement learning, the hypothesis that reward prediction errors influence memory consolidation has mainly been motivated based on anatomical considerations that the hippocampus receives dopaminergic input (e.g., \cite{Lisman2005}) and functional findings on interactions between hippocampus and striatum (e.g., \cite{Poldrack2001}). Several studies have manipulate the amount of the reward participants expected and received, liking the obtained reward PE experienced at the time of item presentation or immediately after presentation to subsequent recognition of the items \citep{Rouhani2018,Rouhani2021, Jang2019, de2018signed}. Some studies found that better-than-expected outcomes, compared to worse-than-expected ones, led to improved later recognition  \citep{Jang2019, de2018signed}⁠. By contrast, other studies have found improved memory for surprising items, namely items associated to both better- and worse-than-expected outcomes \citep{Rouhani2018, Rouhani2021}. Therefore, results are divided among effects due to signed PE, in which there is a contrast between the positive and negative valence of PE, and effects related to unsigned prediction error, in which the unexpectedness of the events, independently of the valence, influenced memory encoding.\par
+One element that can be a good candidate for explaining these mixed findings is the outcome of participants’ predictions. In fact, while in the studies finding a positive, linear relationship between signed PE and encoding participants were receiving an outcome that was related to their choice, in the studies finding memory benefits for all surprising events (both better- and worse-than-expected), a passive Pavlovian paradigm was used, with outcome being independent of participants’ choice.  \citep{Rouhani2018, Rouhani2021}. It is thus possible that prediction outcome modulates the effects of PE on encoding. In addition, because the studies aforementioned manipulated PE by using rewards, the mechanistic effects of PE per se, regardless of the reward, are still far to be fully understood.\par
+We designed a task in which participants were presented with different contexts and had to predict the category of trial-unique objects that appeared at the end of each trial. In order to generate different amounts of PE strengths, we quantified expectations by using gradually different contingencies. The probability of a certain category following a context was systematically manipulated so that for some contexts expectations were higher than for others. We then use a reinforcement learning model to derive trial-level PE experienced during the presentation of the images and relate it to the likelihood of subsequently recognizing the items in a following surprise recognition test. PE reflected how unexpected to participants was the presentation of one object category following a context. The procedure thus allowed to test whether episodic memory for the objects was related to PE experienced during their presentation. We reasoned that if surprising events improve memory encoding, we would observe a positive relationship between PE and memory encoding, so that the more surprising the events, the better the memory for those events. Contrarily, if choice outcome makes a difference, we would expect an interaction between PE and choice outcome in a way that PE improves memory for better than expected outcome, while impairing memory for worse than expected outcome. In a first experiment, we designed a strong prior and a flat prior scene, leading to high and low PE, and medium PE, respectively. We then designed a second experiment in which the contingencies of the context-category pairs were more graded.
+Another domain in which prediction errors may influence episodic memory are stimulus-stimulus associations that do not explicitly carry information about reward. Here, different brain areas may be responsible for such an interaction \citep{Henson2010}. The hypothesis that prediction errors for stimulus-stimulus associations influence memory consolidation has so far been considered in light of the predictive coding framework \citep{Friston2009}. The predictive interactive multiple memory systems (PIMMS) framework argues that prediction error information that results from the interaction between several memory systems drive memory encoding and retrieval \citep{Henson2010}. However, although a recent study experimentally supported to core predictions of the PIMMS account \citep{Greve2017}, there does currently not exist a formal documentation and computational implementation of such ideas. 
+Here, we will consider similar interactions between stimulus-stimulus associations and episodic memory. We will develop an agent-based computational model with the aim to test if prediction errors modulate memory consolidation. We will follow the notation of \cite{Murphy2012}.
+%The PIMMS account distinguishes between an episodic, semantic and perceptual memory system that are assumed to constantly interact. The episodic system is thought to encode specific contextual or temporal information that is for example related to the current environment. The semantic system in contrast encodes relations between stimuli that co-occur in the the environment. Finally, percptual systems are responsible to distinguish related intems from the environment as such. The PIMMS framework also makes explicit connections to the potential neural implementation of the three assumed systems: The episodic system is linked to the hippocampus, the semanstic system to the periorhinal cortex and the perceptual system to the occipitotemporal cortex. 
+
+%We will now make an attempt to identify the core principles of the framework that we will then translate into a concrete implementation. The framework assumes a hierarchical organization of the three memory systems. The episodic system is located on the highest level, followed by the semantic system and the perceptual is on the lowest level of the hierarchy. These levels in the hierarchy exchange information via forward and backward connections, where backward connections transmit predictions from one level of the hierarchy to the level below. Prediction errors emerge when prediction of the higher level do not match the information received at the level below. For example, given a certain context, the episodic system predicts the occurence of items in that context, which is stored in the semantic system. As a results, the prediction error between the actual items in that context and the predicted items in the context leads to increased memory encoding in the episodic system. This idea is modeled according to principles of Bayesian updating, where the prediction of a system corresponds to a prior distribution that is transferred to the level below; the actually perceived item corresponds to the likelihood and the update as a results of the prediction error corresponds to the posterior distribution that results from a combination of prior and likelihood.
+
+%In our implementation, we will focus on the interactions between episodic and semantic system.
+
+\section{Results}
+In both experiments, participants performed a paired-associate task in which they were asked to predict the category of trial-unique objects that would follow a precise context (see Methods). Unbeknownst to participants, each context was predictive of an object category with a fixed contingency (see Fig X). Participants could learn the association between a context and an object category during a learning phase (phase 1), in which they received feedback. In a subsequent phase (phase 2), participants were asked to do the same task as in phase 1, with the only difference that they no longer received feedback. Finally, they had to do a recognition memory test, were they were asked to recognize the objects presented in phase 2 among some distractors. 
+
+In experiment 1, participants were presented with six contexts, each of them was predictive of the object categories following specific contingencies: three contexts were related to a strong prior condition, in which one of the three objects categories was presented 80 \% of the times, and the remaining two object-categories 10  \% of the times; three contexts were related to a flat prior condition, in which all the three object categories were equally likely. Trials that matched expectations in the strong prior conditions were considered low PE trials, while those who mismatched the expectations high PE trials. Trials in the flat prior conditions were considered medium PE trials. In experiment 2, two instead of three object categories were used. The strong and the flat prior conditions were maintained, although with 90-10 and 50-50 contingencies, and a weak prior condition was introduced, with 70-30 contingencies. This manipulation allowed to sample more points along the PE continuum. 
+
+\subsection{Learning Performance}
+Results of the paired-associate task show that participants understood the task correctly and were able to learn to predict the object category that was more likely to be presented for each context, in both experiment 1 and experiment 2. Participants’ cumulative accuracy tended to approximate true probability for each context and experiment, as shown in Figure \ref{fig:participantsLer}.
+
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=1\textwidth]{figures/cumAccbySceneAll.jpg}}
+\caption{\textbf{Participants' learning performance.} Participants' learning performance for a) experiment 1 and b) experiment 2. The different colours represent the scene conditions. Shadows represents standard error.}
+\label{fig:participantsLer}
+\end{figure}
+
+\subsection{Computational Models}
+In order to derive trial-level PE at encoding, different reinforcement learning models \citep{Sutton2018a} were fitted to behavioural data. This allowed to capture the process of learning the category probability for the different contexts and establishing prior expectations. In these reinforcement learning models, an agent is assume to learn values of context-category associations by adding the current expected value to a learning rate $\alpha$ multiplied by the PE (see Methods). We fitted three different reinforcement learning models that made different assumptions on how participants learned the contex-categories association: An instructive model with a decreasing learning rate (dLRI) which updates the expected values on each trial through the observation of outcomes, regardless of the choices made; An instructive model where participants were allowed to have their own learning rate $\alpha$ (fLRI), modelled as a free parameter and estimated through maximum likelihood (see Methods); An evaluative model with a free learning rate (fLRE), where the expected values were updated through the outcome received on every trial. \par
+The dLRI considers how the expected values should be updated optimally, since it is derived by a Bayesian formulation of the task (see Methods and Supplemental Material). In this optimal Bayesian formulation of learning in this task, the prediction error is assumed to have its maximal influence on learning in the early trials, to decrease immediately after as a function of the inverse of the number of the trial. In this model, the only parameter that was estimated was the 'inverse temperature' $\beta$, which regulates the stochasticity/determinism trade-off in selecting the action depending on the expected values: High values of $\beta$ represent more probable preference of the higher context-category associations, while lower values produce more noisy choices. 
+In addition to the $\beta$ parameter, the models fLRI and fLRE estimate a learning rate $\alpha$, a value between 0 and 1 that determines the influence of a current prediction error on the expected values. The learning rate represents the extent to which the evidence from the current trial was used to update the expectations: Higher learning rate weights more the present evidence and the extend to which it deviates from the value estimates, while lower learning rate weights more the estimated values, and thus the past trials.  \citep{Sutton2018a}.  \par
+Prior to fitting the models to participants' data, we ensured that the models could distinguish among different parameters' value and also generated qualitatively different data (Parameter and Model Recovery, see Methods and Supplemental Material).Then, the three models were fit to each participant's data, and the parameters of best fit were estimated as the parameters that maximized the likelihood of participant's choices. 
+
+\subsection{Model Comparison}
+In addition to calculating log-likelihood, we calculated the Bayesian information criterion (BIC) for each model and for each subject, by multiplying the maximum likelihood (i.e. the likelihood for the parameters of best fit) by the number of free parameters in the model. This approach penalizes models with more parameters. We then marked the number of participants for which each model was the best fit, as well as the evidence, computed as the BIC difference between the best and the second bets model. Results are shown in Figure \ref{fig:ModelComparison}. Table \ref{tab:ModelComp} show BIC values and the the number of participants for which a model was the best fit, as well as the number of people for which there was strong evidence, for both Experiment 1 and Experiment 2. 
+
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=1\textwidth]{figures/ModelComparisonAll.jpg}}
+\caption{\textbf{Model Comparison.} Results of model comparison for a) experiment 1 and b) experiment 2. Evidence for the best model for each participants is shown.}
+\label{fig:ModelComparison}
+\end{figure}
+
+\begin{table} 
+    \centering 
+    \caption{\label{tab:ModelComp}Model Comparison. BIC values and standard errors for each model for Experiment 1 and experiment 2. \textit{Best(N)} and \textit{Very strong(N)} refer to the number of participants for which the model was the best fit and for which there was very strong evidence, respectively   }
+    \scalebox{1}{
+    \begin{tabular}{l l l l}
+
+     \hline
+
+   Model/Experiment & BIC (\textit{se}) & Best(N) & Very Strong (N) \\
+     \hline
+    \textbf{Experiment 1} \\ 
+
+  dLRI & 289.3(3.1) & 3 & 0 \\
+  fLRI & 266.4(1.5) & 21 & 6 \\
+  fLRE & 271.4(2.4) & 8 & 3 \\
+
+         \textbf{Experiment 2} \\
+  dLRI & 801.2(4.9) & 8 & 2 \\
+  fLRI & 783.1(2.3) & 26 & 11 \\
+  fLRE & 774.3(3.2) & 6 & 2 \\
+     \hline
+
+    \end{tabular}
+}
+    \end{table}
+
+Model comparison established the instructive model with the free learning rate (fLRI) explained participants behaviour better than the other models. In fact, the overall BIC was smaller (indicating better fit), and the number of participants for which it was the best model were 21 over 32 for experiment 1, and 26 over 40 for experiment 2. In addition, there was very strong evidence for 6 participants in experiment 1 and 11 participants in experiment 2. Therefore, the best fitting model is the model that considers instructive feedback and estimates a specific learning rates for each participant.  
+
+\section{Model Validation}
+We also analysed the ability of the model to generate performance which is qualitatively similar to participants' actual beahaviour. For each actual participant, we simulated data on the learning and encoding tasks using the best fitting model (fLRI) and its estimation of best fitting parameters. The model simulations included the actual task structure. In order to evaluate model's simulations, we calculated cumulative accuracy for the data generated by the model and qualitatively compared it to participants' actual cumulative accuracy. Figure \ref{fig:simvsemp_Exp1} and Figure \ref{fig:simvsemp_Exp2} show that the simulated models capture participants' behaviour. 
+
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=1\textwidth]{figures/SimulatedVsActual.exp=exp1.mod=fLR_Instr.png}}
+\caption{\textbf{Simulated vs Empirical Data - Experiment 1.} Simulated data (red line) and actual data (green line) overlapped, for experiment 1.}
+\label{fig:simvsemp_Exp1}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=1.5\textwidth]{figures/SimulatedVsActual.exp=exp2.mod=fLR_Instr.png}}
+\caption{\textbf{Simulated vs Empirical Data - Experiment 2.} Simulated data (red line) and actual data (green line) overlapped, for experiment 2, for weak priors condition and strong prior condition. }
+\label{fig:simvsemp_Exp12}
+\end{figure}
+
+In addition, we compared cumulative accuracy for simulated and empirical data at different values of learning rate $\alpha$. For simulated and empirical data, quartiles for $\alpha$ were calculated (zeroth, first, second, third, and fourth quartile), and cumulative accuracy was aggregated for the data points between one quartile and the previous one. Cumulative accuracy for the four bins created is shown in Figure \label{fig:binAll}, as a function order of the trials (late vs early), type of data (empirical vs simulated), and experiment (first vs second experiment). For both actual and simulated data, a higher learning rate was more beneficial than a lower one for early trials, while on late trials higher learning rates are detrimental for the learning task. These effects seem not to vary substantially as a function of the experiment. 
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=1.5\textwidth]{figures/bin.plot.all.jpg}}
+\caption{\textbf{Cumulative Accuracy for Simulated and Empirical by Learning Rate.} Figures show the cumulative accuracy at the leaning task for early vs late trials, at different learning rate levels, for a) experiment 1 and b) esperiment two. Cumulative accuracy was binned  }
+\label{fig:binAll}
+\end{figure}
+
+\section{Recognition Memory Results}
+To evaluate overall memory performance for each participant, a d' score was calculated from the hits (responding "old" to old items) and false alarms (responding "old" to new items), an index which indicate participants' discriminability between old and new items. In order to exclude participants who did not respond above chance, we created a change distribution by generating 5000 random permutations of the trial labels. We then excluded participants whose performance was below the 95 \% percentile of the distribution. Five participants  from experiment 1 and five from experiment 2 with overall d' score below the obtained threshold were excluded from further analyses. After the exclusion, the final d' was d' = 0.93,  \textit{t}(26) = 13.7, \textit{p} < .001 for experiment 1, and d’ = 0.90,  \textit{t}(34) = 16.8, \textit{p} < .001 for experiment 2, indicating that participants were overall able to discriminate previously presented old items from new distractors. 
+
+\subsection{Memory as a function of model-derived PE}
+The fLRI model was fit to participant data with the estimated best fit parameter in order to derive trial-level PE during the encoding phase. The PE was calculated as the difference between whether or not an object category was presented and its current estimated values, corresponding to the strength of the expectation that an object category would be presented at a given scene. Higher PE levels were generated when a category presented was not expected, as reflected by a corresponding expected value close to zero. By contrast, a low PE was generated by trials in which the category presented was characterized by a high expected value. Distribution of PE by prior conditions for experiment 1 and 2 is shown in Figure \ref{fig:PE_distr}
+. 
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=1.5\textwidth]{figures/PEdistr_fLR_instr.All.png}}
+\caption{\textbf{Distribution of PE by Scene Condition and Experiment.} Figures show the density plots of model-derived PE for the different scene conditions, in a) experiment 1 and b) experiment 2.  }
+\label{fig:PE_distr}
+\end{figure}
+
+The plots show that PE was distributed differently as a function of the scene condition. The bimodal distribution in the weak and the strong prior conditions represent the effect of congruent and incongruent items. 
+We then tested whether model-derived PE was related to recognition memory. Plots of the observed values (see Figure \ref{fig:PE_mem}) showed a relationship between PE and memory modulated by prediction outcome. In order to statistically test for the significance of this relationship, we used a generalized linear-mixed model were participants were treated as random effects (see Methods). In the model, PE and prediction outcome, as well as their interactions, were added as fixed effects. In addition, Ransom slopes for PE and prediction outcome, and their interaction, were also added to the model. Analysis revealed a significant interaction between PE and prediction outcome ( $\chi^2_{(1)}$ = 10.46, \textit{p} = .001, experiment 1;  $\chi^2_{(1)}$ = 13.74, \textit{p} < .001, experiment 2).
+
+
+\begin{figure}
+{\includegraphics[width=0.75\textwidth]{figures/PE_mem_fLR_instr.exp1.png}}\hfill
+{\includegraphics[width=0.75\textwidth]{figures/PE_mem_fLR_instr.exp2.png}}\
+\caption{\textbf{PE and Memory as a function of Prediction Outcome.} Observed relationship between PE and hit rate as a function of prediction outcome, in experiment 1 and experiment 2. }
+\label{fig:PE_mem}
+
+\end{figure}
+
+
+To break down the interaction, we analyzed the effect of PE on memory separately for correct and incorrect predictions. For experiment 1, there was a positive linear relationship between PE and recognition memory when prediction outcome was correct, $\beta$ = 1.14, \textit{p} = .002, while a negative linear trend when prediction outcome was incorrect which did not reach significance, $\beta$ = - 0.83, \textit{p} = .071. For experiment 2, a positive linear trend between PE and recognition memory when predictions were correct did not reach significance, $\beta$ = 0.39, \textit{p} = .111, while there was a significant negative relationship for incorrect predictions, $\beta$ = - 0.862, \textit{p} < .001. 
+\paragraph{Analysis of Experiment 1 and Experiment 2 together}
+As a next step, we merged data from both experiments and analyzed them in the same model to increase power. In order to compare memory at different levels of the model-derived PE, we calculated the quartiles for PE for each participant, separately for trials with correct and incorrect prediction outcome. We then binned the hit rate by aggregating it between the quartiles, to create four bins which eventually was used as the response variable in the model. A graph with the distribution of PE by binned data is shown in Figure \ref{fig:PEbin_distr}.
+
+\begin{figure}[ht!]
+{\includegraphics[width=1\textwidth]{figures/PEdistr_binned.png}}
+\caption{\textbf{Distribution of binned PE.}Distribution of PE after binning it, as a function of prediction outocme and experiment . }
+\label{fig:PEbin_distr}
+
+\end{figure}
+
+\begin{figure}[ht!]
+{\includegraphics[width=1\textwidth]{figures/binnedPE_mem.png}}
+\caption{\textbf{Hit Rate by Binned PE.} Effect of binned PE on hit rate as a function of prediction outcome. }
+\label{fig:PEbin_mem}
+
+\end{figure}
+
+Hit rate as a function of binned PE and prediction outcome is shown in Figure \ref{fig:PEbin_mem}. 
+ We then tested for the three-way interaction between binned PE, prediction outcome, and experiment, in a linear mixed-effects model, adding participants as random effects. The three-way interaction was not significant, $\chi^2_{(3)}$ = 4.23, \textit{p} = .238. In addition, the interactions between PE and experiment, and the interaction between prediction outcome and experiment were not significant ($\chi^2_{(3)}$ = 1.68, \textit{p} = .642, $\chi^2_{(3)}$ = 0.81, \textit{p} = 0.368, respectively). These results suggest that there were not significant differences in the effects of PE and in the interaction between PE and prediction outcome between the two experiments. By contrast, there was a main effect of experiment, $\chi^2_{(3)}$ = 7.70, $\beta$ = - 0.12, \textit{p} = .005, showing that overall participants’ performance was significantly worse in experiment 2, compared to experiment 1. Importantly, there was also a significant interaction between PE and prediction outcome, $\chi^2_{(3)}$ = 14.09, \textit{p} = .003.\par
+ To break down the interaction, the effect of PE on recognition was analyzed separately for correct and incorrect prediction outcomes. We compared each bin with the first one, to test whether increasingly higher PE significantly affected memory encoding. Results showed that for incorrect prediction outcomes, the difference between the first and the second bin did not reach significant, β = -0.05, .pcorr = .060. Contrarily, the comparisons between the third and the first, and the fourth and the first, were both significant, (pscorr < .001). For correct prediction outcomes, the comparison between first and second quantile, and first and third quantile did not reach significance (pscorr >.133), whereas the comparison between the fourth and the first quantile was significant, β = 0.075, .pcorr = .015. These results suggest that while a PE error generated by incorrect prediction impairs memory even when prior expectations are not very strong, for correct predictions a high PE is needed in order to observe benefits for memory encoding. 
+
+\section{Experimental task}
+In the experimental task, we will sequentially present object categories across several task phases that require experience-driven learning, outcome predictions and memory retrieval of the learned categories. In the learning phase, participants will passively observe 3 object categories (instruments, household, fruits and vegetables) across 24 trials (in each trial a new object is presented) and 6 blocks that consist of different context scenes (e.g., beach, snowy mountains). In the prediction phase including the same contexts, participants will be exposed to objects from categories that have been experienced in the learning phase and objects from novel categories that have not been seen before. In the final memory phase, we will test how well participants are able to recall objects from the prediction phase (recognition memory test).
+
+To test the question if prediction errors modulate memory consolidation, we will design different task contexts, in which the probabilities associated with the object categories differ from each other. In particular, each context is associated with different objects from the 3 categories. In half of the contexts (''strong prior''), one particular object category will be presented with a high probability (Figure \ref{fig:pmf} upper panel). In contrast, in the ''flat prior'' context, all categories are associated with the same probability (Figure \ref{fig:pmf} lower panel). What we will accomplish in the next phase (prediction phase) is thus different prior expectations about the probabilities of the categories while the objects as such will be novel. As a consequence, deviations and confirmations of the predictions will be associated with different prediction error magnitudes that can be linked to memory performance in the memory phase.
+\section{Methods}
+
+\subsection{Computational Models}
+We fitted participants' data with computational models.The models considered are all different version of a standard Rescorla-Wagner model (or Q-learning) \citep{Sutton1998, Daw2011}. For each scene category, the model estimates a trial-level variable \textit{Q} for as many object categories there are in the experiments (three in experiment 1 and two in experiment 2). These \textit{Q} values reflect the strength of participant belief that a certain category (for example, "Instruments") will be presented in a specific context (for example, "beach"). 
+\noindent
+Since we have \textit{N} categories for each \textit{n} context, the estimates $\hat{Q}$ of the probabilities can be represented by the following \textit{c}-by-\textit{j} matrix:
+
+\begin{equation}
+\begin{bmatrix} 
+\hat{Q}^{1,1}, & \hat{Q}^{1,2}, & ... \\
+\hat{Q}^{2,1}, & \hat{Q}^{2,2}, & ...\\
+..., &..., & \hat{Q}^{j,c} \\
+\end{bmatrix}
+\quad
+\label{matrix}
+\end{equation}
+
+\noindent
+Where $\hat{Q}^{1,1}$ represent the expected value Q for category \textit{j}=1 in context \textit{c}=1. For all the models considered in this study, the estimated values are stored in a category \textit{j} by context \textit{c} matrix as this one, and initialize as  $\hat{Q}^{j,c} = 0.33$ in experiment 1, and $\hat{Q}^{j,c} = 0.5$ in experiment 2.
+
+\paragraph{Decreasing Learning Rate Instructive Model (dLRI)}. First, to provide a normative Bayesian solution, we used a Dirichlet-multinomial model. We applied a multinomial distribution because the categorical distribution that we used in our task is a special case of the multinomial distribution that consists of only one random sample during each trial (see Supplementary Material). The Dirichlet multinomial model can be reformulated to a delta-rule model in which the learning rate constantly decreasing inversely proportional to the number of the trial. 
+Thus, the delta-rule model sequentially updates the category probabilities for each context according to
+
+\begin{equation}
+\hat{Q}_{t+1}^{j,c} = \hat{Q}_{t}^{j,c}  + \dfrac{1}{t} \delta_{t},
+\end{equation}
+
+
+\noindent
+where $\hat{Q}_{t+1}^{j,c}$ denotes the estimate of the probability of category $j$ in context ${c,j}$ at the next trial $t+1$. This estimate is based on the current estimate of the category probabilities ($\hat{Q}_{t,j}^{j, c}$) and the prediction error $\delta$, calculated as:
+
+\begin{equation}
+{\delta} = {r}_t^{j} - \hat{Q}_{t}^{j,c}
+\label{eq:PE}
+\end{equation}
+
+\noindent
+where the feedback ${r}_t^{j}$ represents an array of ${N} ^{j}$ elements, in which each element refers to a category \textit{j}, defined as following:
+
+\begin{equation}
+r_t^j = \begin{cases}
+1\ if  \ j = j_t  \\ 
+0 \ otherwise
+\end{cases}
+\label{eq:instrPE}
+\end{equation}
+
+\noindent
+ The values of the array are 1 if category \textit{j} is present on trial \textit{n}, and 0 if it is not. Therefore the model is assuming that a value estimate for an object category that appears on a trial incrementally increases as a results of a positive prediction error until $Q_{t}^{j,c}$ reaches its asymptote of 1. Conversely, the values estimates of categories that are not presented on trial \textit{t} decrease as a results of a negative prediction error, unless $Q_{t}^{j,c}$ for those categories has already a value of 0. 
+Therefore, this model only uses instructive feedback, which indicates what is the correct choice, independently of participants' action. The learning rate $1/t =: \alpha$ indicates to which degree the prediction error influences the updated estimate of the category probabilities.  Given that the learning rate in our case directly depends of the number of completed trials $t$ for a context \textit{c}, it continuously decays as a function of trials. This principle ensures that the influence of prediction errors is stronger at the beginning of the task. For more information about the formalization of the optimal Bayesian model, see Supplementary Material. 
+
+\paragraph{Free Learning Rate Instructive Model (fLRI)}. The dLRI show how an optimal agent should update the expected values. However, participants' behaviour may be far from optimal. %citation needed 
+For this reason, the fLRI allows each participant to have its own learning rate $\alpha$. The expected values are thus updated according to the following rule: 
+
+\begin{equation}
+{Q}_{t+1}^{j,c} = {Q}_{t}^{j,c}  + {\alpha} \delta_{t},
+\label{eq:fLRI}
+\end{equation}
+
+\noindent
+while $\delta$ is the same as in equation \ref{eq:PE}. Also, note that this model uses the same instructive feedback as in equation \ref{eq:instrPE}.
+
+\paragraph{Free Learning Rate Evaluative Model (fLRE)}. This model still allows participants to have a fixed learning rate $\alpha$. However, this model assumes that the feedback depends entirely on the actions that participants take. The expected values are thus updated as follows:
+
+
+\begin{equation}
+{Q}_{t+1}^{j,c} = \begin{cases}
+{\alpha} \delta_{t}\ if  \ a_t = j_t \  \\ 
+{Q}_{t} \ otherwise
+\end{cases}
+\end{equation}
+
+\noindent
+Where the $\delta_{t}$ is calculated as in equation \ref{eq:PE} and $r_t$ is 1 if the choice is the correct one, and 0 otherwise. 
+
+\paragraph{Action Selection}. The expected \textit{Q}-values computed through the models listed above where translated into choice probabilities by implementing a softmax rule as follows: 
+
+\begin{equation}
+P_t^{j,c} = \dfrac{ exp({\beta} {Q}_t^{j,c})   }
+{ \sum_{j=1}^j (exp({\beta} {Q}_t^c) },  
+\end{equation}
+
+\noindent
+Where $P_t^{j,c}$ represent the probability of choosing a specific object-category \textit{j} for a defined scene category \textit{c}. The inverse temperature parameter $\beta$ is another free parameter that modulates the stochasticity of the choice, where higher values meaning more deterministic actions and lower values more noise-sensitive choices. 
+
+\paragraph{Parameter Recovery}. Before fitting the models to participants' data, a parameter recovery procedure was run for both experiment 1 and experiment 2, in order check whether the fitting procedure for each model gave meaningful parameters and find potential parameters boundaries. Fake data with randomly sampled known parameters where simulated, then the models were fit to the simulated data \citep[see][]{Wilson2019a}. The priors from which the simulation parameters were sampled are shown in table \ref{tab:priors}. In order to fit the data, we used maximum likelihood estimation (see section). Because the models are designed to reflect participants' learning, only the strong (experiment 1) and strong and weak (experiment 2) conditions were simulated. High correlation between simulated and fitted data indicates that the model successfully recovered the parameters that were used to generate the data. First attempts to recover the parameters allowed to set the boundaries for inverse temperature parameters. Plots of the parameter recovery are shown in figure \ref{fig:parameter_recovery}.
+
+% The alpha parameter, the learning rate, was drawn from a uniform distribution (min=0, max =1). The beta parameter, the inverse temperature parameter, from drawn from an exponential distribution. Beta parameter was constrained at 30 after inspection of the first parameter recovery plots, as for values that are above that boundary parameter do not affect behavior much (Wilson and Collins, 2019). Stickiness parameter is drawn from normal distribution with mean 0 and sd 1.
+
+
+
+\begin{table} 
+    \centering 
+    \caption{Priors for the parameters}
+    \scalebox{1}{
+    \begin{tabular}{l l}
+     \hline
+    Parameter & Priors \\
+    \hline
+    
+ ${\alpha}$ & $\sim U(0,1)$ \\
+  ${\beta}$ & $\sim exp(1)$ \\
+     \hline
+    \end{tabular}
+}
+    \label{tab:priors}
+    \end{table}
+
+
+
+\paragraph{Model Recovery}
+Besides parameter recovery, another procedure to evaluate the reliability of the model is model recovery \citep{Wilson2019a}. The aim of model recovery is to determine that a model, among several ones, can successfully be indicated to be the one to have generated the data. In order to do this, data of the three different models were simulated (with randomly sampled parameters) and then fit to each of the models. The models were then compared to determine which one fit the data best. The method used to assess the fit of the models was Bayesian Information Criterion, \textit{BIC}, which incorporates a penalty for the number of parameters. 
+
+\begin{equation}
+BIC = {-2}log \hat{LL} + k_m log{(T)},
+\label{eq:BIC}
+\end{equation}
+
+\noindent
+where $\hat{LL}$ is the log-likelihood value when the model is fitted with the best fitting parameter, and $K_m$ is the number of parameters in the model \textit{m}. Lower values of \textit{BIC} mean better fit. 
+
+The comparison between the models for each set of generated data was repeated 100 times to calculated the confusion matrices shown in figure \ref{fig:model_recovery}.
+
+
+
+% To capture the influence of the learned category probabilities on memory consolidation, we need a model that accurately establishes contextual priors during the learning phase. As shown in Section \ref{dmn} and \ref{delta} in the Appendix (Section \ref{apppendix}), k. In Figure \ref{fig:phase_1_strong}, we provide an example of the delta rule model for categories with $\boldsymbol{\theta}=(0.8,0.1,0.1)$ and \hl{$N=24$} trials. The first row of plots shows the sampled categories across the trials. The second row of plots shows the corresponding prediction errors. For instance, at the first trial the model did expect each category with probability $\boldsymbol{\hat{\theta}}=(0,0,0)$ and observed category 1. In response to this, the model computed a prediction error $\delta_{1,1}=1$ and for the other categories $\delta_{1,2}=0$ and $\delta_{1,3}=0$. Finally, the last row of plots shows the evolution of the expected values that are updated in response to the prediction error. Figure \ref{fig:phase_1_flat} shows an example of the flat prior condition ($\boldsymbol{\theta}=0.33,0.33,0.33$). Obviously, the frequency with whichttps://www.overleaf.com/project/6040f176de7d0939c7e879efh the categories are presented is more similar compared to the strong prior condition, which is reflected in the model's learned expected value that converges to $\hat{\theta}_{n,j(c_n)} = 0.33$ for all categories.
+
+\section{Parameter Estimation and Model Comparison}
+The models where finally fit to the actual data in order to estimate the parameters. Given each model, the parameters of best fit were estimated through maximum likelihood estimation. This procedure allowed to find the parameters $\theta$ that maximized the likelihood of the data given the parameters $p(d_{1:t} | \theta, m $. 
+The probability of the whole dataset \textit{d} is calculated as the product of the choice probabilities $p(c_t | d_{1:t-1}, \theta, m)$. As the product of the choice probabilities is often a very small number, it is common practice to use the log-likelihood, which is the sum of the log of the choice probabilities instead \cite{Daw2011, Wilson2019a}:
+
+\begin{equation}
+LL = \sum_{t=1}^{n} \log{p(c_t | d_{1:t-1} , \theta, m)}
+\end{equation}
+
+\noindent
+where $p(c_t | d_{1:t-1}, \theta, m)$ is the probability of each single choice given the parameter $\theta$, the model \textit{m}, and all the data up to that point. The search over the full set of free parameters was optimized through the package \textit{optim} in R, which was fed with the negative log likelihood and a set of starting points randomly selected from the priors shown in Table \ref{tab:priors}. The $\alpha$ parameter was constraint between 0 and 1, while the $\beta$ parameter between 0 a and 10, as parameter recovery shown that for values that exceeded 10 the model could not distinguish between different beta parameters. Because the optimizer may find a local rather than a global, we run the search for the best parameters five times, starting from different points, and then used the best winning parameters among the five iterations, i.e. the parameters that minimized the log-likelihood. 
+After estimating the parameters, a \textit{BIC} value(see equation\ref{eq:BIC}) was computed for each model and for each participant using the parameters of best fit. \par
+To compare the fit of the models, we used the model evidence of the best model within each participant: Following \cite{raftery1995bayesian} and \cite{gluth2017attraction}, model evidence was defined as "weak","positive", "strong", or "very strong" depending on the difference between the best and the second best model for each participant. Precisely, evidence was "weak" when the difference x between best and second best model was below 2, "positive" when it was between 2 and 6, "strong" when it was between 6 and 10, and "very strong" when it was above 10. 
+
+\section{Statistical Analysis}
+In order to test the statistical significance of the effects of interest, we used linear mixed-effect models and generalized linear mixed-effect models, implemented in R through the package \textit{lmr4}. Because our main outcome variable (memory) is binary, we used the logit link function in the binomial family to fit the models to accuracy data. In these, participants were modelled as random intercepts, while the explanatory variables and their interactions were modelled as both fixed and random effects. The generalized linear-mixed effect model can be formalized as the following:
+
+\begin{equation}
+p(Hit) =   \dfrac{1}{1+exp - (\beta_0 +\beta_{1_j} PE +\beta_{2_j} PO + \beta_{3_j} PE \cdot PO + u_{i,j} )}
+\end{equation}
+
+\noindent
+where $\beta_0$ represents the intercept (i.e. the average $p(Hit)$), $\beta_{1_j}$PE the fixed effect of PE,  $\beta_{2_j}$PO the fixed effect of prediction outcome, and $\beta_{3_j} PE \cdot PO$ the fixed interaction between PE and prediction outcome. Finally, $u_{i,j}$ represents the participant unique random effects, for the intercept, main effects, and their interactions.
+
+In the analysis of the effect of binned PE, we used a linear mixed-effect model, with hit rate as response variable:
+
+\begin{equation}
+Hit Rate =   \dfrac{1}{1+exp - (\beta_0 +\beta_{1_j} PE +\beta_{2_j} PO + \beta_{3_j} PE \cdot PO + u_{i,j} )}
+\end{equation}
+
+The variance-covariance matrix for the random effects was set as unstructured. Therefore, we used the maximal random effect structure justified by the design \citep{barr2013random}. The test of the significance of the parameters was obtained through Wald chi-square test. Effect sizes were reported as odds ratios exp($\beta$), where:
+
+\begin{equation}
+Odds =   \dfrac{p(Hit=1)}{1-p(hit=1)}
+\end{equation}
+
+\section{Model Validation}
+In order to validate the winning models, they were used to simulate data, using the same parameters that were estimated from participants' data. Then cumulative accuracy was calculated for simulated data and compared to participants' actual cumulative accuracy, for strong prior conditions, to check whether the model fully captured behaviour. Results are shown in figure \ref{fig:actualvssim}. 
+
+
+
+\section{Prediction Error and Memory}
+The trial-by-trial estimates of expected values, choice probabilities, and prediction errors were then extracted from the best-fitting model. Two kinds of prediction error were considered: Choice-based and observation-based. The choice-based prediction error is the prediction error for the object category that is selected by participants at each trial. For correct choices the prediction error is always positive, as it represent the difference between 1 (correct response) and an estimated value for the category that can be between 0 and 1. For incorrect choices, the prediction error can vary between 0, representing an incorrect choice when the estimated value for a category (prior belief) is 0 , and -1, an incorrect choice when the estimated value is at 1. Therefore, it is a "signed" prediction error, ranging from -1 to 1. This kind of prediction error was used to update the estimated values in the all-categories feedback-based model.  Contrarily, the observation-based prediction error is based on the prediction error of the object-category displayed at the end of each trial. As this prediction error assigns a value of 1 to the object category that is presented on each trial, its values are always positive. Therefore, it is an "unsigned" prediction error. The so-obtained model-derived prediction errors were used to predict performance on the recognition test. The distribution of prediction error by condition is displayed in figure \ref{fig:PEbyPElevel}. We built a generalised linear mixed-effects model with episodic memory (binary) as dependent variable, and trial-based prediction error as predictors. In addition, random intercepts for subjects, and random slopes for prediction error were added. 
+The relationships between PE and memory is presented in figure \ref{fig:PEbymem}.
+For the choice-based prediction error, there was a significant positive relationship between prediction error and recognition memory in the immediate test, so that the more positive the prediction error, the better the memory. For the observational prediction error, there was a quadratic effect of prediction error on memory in the immediate test,so that performance was better when prediction error was at the middle level, compared to higher and lower ends. 
+As the unsigned, choice-based prediction error can be considered as the signed, observational-prediction error with the addition of prediction outcome, we analysed the combined effect of these two variables on memory. Figure \ref{fig:PEbymemByACC}.
+These results show that prediction error at encoding influenced subsequent memory as a function of the outcome of participants’ predictions (correct vs incorrect). Precisely, when participants correctly predicted the object category, stronger prediction error (weaker prior) led to enhanced memory. In contrast, when participants incorrectly predicted the object category, stronger prediction error (stronger prior) led to impaired memory. 
+
+\begin{figure}[ht!]
+{\includegraphics[width=0.5\textwidth]{figures/PEchoiceFeedbAll.Pilot.png}}\hfill
+{\includegraphics[width=0.5\textwidth]{figures/PEobsFeedbAll.Pilot.png}}
+\caption{\textbf{Distribution of prediction error by condition.} Distribution of the choice-based (left) and observation-based (right) prediction error as a function of the prediction error condition.}
+\label{fig:PEbyPElevel}
+\end{figure}
+
+%\begin{figure}[ht!]
+%{\includegraphics[width=0.5\textwidth]{figures/ObsAllPEfeedb_part.png}}\hfill
+%%{\includegraphics[width=0.5\textwidth]{figures/DualLRPEfeedb_part.png}}\vfill
+%{\includegraphics[width=0.5\textwidth]{figures/ObsAllPEObs_part.png}}\hfill
+%{\includegraphics[width=0.5\textwidth]{figures/DualLRPEObs_part.png}}
+%\caption{\textbf{Distribution of prediction error by participant.} Distribution of the %feedback-based (top) and observation-based (bottom) prediction error as a function of %participant. On the left the prediction error derived from the all-categories observational %model, on the right the prediction error derived from the dual learning rate model.}
+%\label{fig:PEbypart}
+%\end{figure}
+
+\begin{figure}[ht!]
+{\includegraphics[width=0.5\textwidth]{figures/PEchoiceByMemImm.png}}\hfill
+{\includegraphics[width=0.5\textwidth]{figures/PEobsByMemImm.png}}
+
+\caption{\textbf{Prediction error and memory.} Predicting recognition accuracy as a function of prediction error. Choice-based prediction error on the left, observation-based on the right.}
+\label{fig:PEbymem}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics{figures/PEobsByAccFeedbAll.png}}
+
+
+
+\caption{\textbf{Prediction error, Prediction Accuracy, and Memory.} Predicting recognition accuracy as a function of prediction error and prediction accuracy. The plots show the relationship between prediction error and memory as a function of prediction accuracy on the statistical learning task.}
+\label{fig:PEbymemByACC}
+\end{figure}
+
+
+
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=0.8]{figures/phase_1_strong.pdf}}
+\caption{\textbf{Learning phase strong prior condition.} The first row shows the sampled categories. The second row shows prediction errors. The third row shows the expected values of the category probabilities.}
+\label{fig:phase_1_strong}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=0.8]{figures/phase_1_flat.pdf}}
+\caption{\textbf{Learning phase flat prior condition.} The first row shows the sampled categories. The second row shows prediction errors. The third row shows the expected values of the category probabilities.}
+\label{fig:phase_1_flat}
+\end{figure}
+
+
+\subsection{Prediction phase}
+\hl{Question: With which probabilities are the items presented? Will only new objects be presented?}
+We next make an attempt to link the learning model to memory in the prediction phase. We will start with a descriptive approach that links prediction error magnitudes to a probability to remember an item.
+%We then discuss how a mechanistic model that integrates learning and memory could look like. 
+%\subsubsection{Descriptive approach}
+%A descriptive approach refers to an analysis that is agnostic about the exact assumed mechanisms of a computational model. 
+The advantage of this strategy is that it can easily be tested and also combined with additional influences on memory (e.g., prediction confirmation that results from small prediction errors). In particular, we use a logistic function that models the probability to remember an item dependent on the size of the absolute prediction error
+\begin{equation}
+p(m_i|\delta_{n,j}) :=\dfrac{1}{1+ q\exp(-\beta| \delta_{n,j}|)}.
+\label{eq:softmax1}
+\end{equation}
+
+\noindent
+Here, the $\beta$ parameter indicates the slope of the function (currently fixed to $\beta = 2.5$) and $q$ determines the function's midpoint on the x-axis (currently $q = 3$). The strong prior condition in the prediction phase is shown in Figure \ref{fig:phase_2_strong}. The categories are presented with the same probabilities [only new items?]. However, in contrast to the first task phase, the model starts with prior assumptions about the category probabilities that are based on the previous expected values. As a consequence of this, the model keeps relatively stable expected values and, when items of the most frequently presented category are presented, prediction errors are near zero. In contrast, as items from the other two categories are less expected, they are associated with higher prediction errors. Next, according to our memory model, the smaller prediction errors are associated with lower probabilities to remember an item. As shown in the last row of subplots in Figure \ref{fig:phase_2_strong}, the model therefore predicts a lower consolidation probability for items from the frequently presented category. In the flat prior condition (Figure \ref{fig:phase_2_flat}), all categories are associated with the same presentation probabilities. As a consequence, the model predicts similar consolidation probabilities, which are notably higher than in the frequently presented category in the strong prior condition. 
+
+\subsection{Memory phase}
+Finally, in Figure \ref{fig:pe_memory}, we plot an illustration of the memory model function given the fixed $\beta$ and $q$ parameters.  Please note that the exact probabilities depend on the parameters of the logistic function. These parameters are currently fixed to arbitrary values. As soon as we have pilot data, we can estimate the participants' parameters using a logistic regression in which we predict consolidated items as a function of prediction errors in the prediction phase (and potentially additional factors).
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=0.8]{figures/phase_2_strong.pdf}}
+\caption{\textbf{Prediction phase strong prior condition.} The first row shows the sampled categories. The second row shows prediction errors. The third row shows the expected values of the category probabilities. The fourth row shows the predicted consolidation probabilities.}
+\label{fig:phase_2_strong}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=0.8]{figures/phase_2_flat.pdf}}
+\caption{\textbf{Prediction phase flat prior condition.} The first row shows the sampled categories. The second row shows prediction errors. The third row shows the expected values of the category probabilities. The fourth row shows the predicted consolidation probabilities.}
+\label{fig:phase_2_flat}
+\end{figure}
+
+
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=.6]{figures/PE_memory.pdf}}
+\caption{\textbf{Example of the logistic function.} The function is plotted across absolute prediction errors in range [0, 1] and given $\beta=1$ and $q=3$.}
+\label{fig:pe_memory}
+\end{figure}
+
+%\subsubsection{Mechanistic approach}
+%To get a better understanding of why the brain should consider prediction errors for memory consolidation (or why it shouldn't), we can develop a second model that is based on our assumptions about the link between prediction errors and memory. One way to think about this is the assumption that the brain aims at accurately predicting events in the environment \citep{Henson2010, Gershman2017b}. Starting from this perspective, one could ask the question why the brain doesn't memorize every piece of information. This of course seems not very intuitive, but requires additional assumptions in a model. We could additionally assume that the formation of a new memory is costly (e.g., requires resources) and that the brain then tries to find the sweet-spot between the ability to predict events and the costs of memory formation. Before we implement such an idea, we should discuss what we assume exactly and also check relevant work that could inform such a model. But in general, we need a gain function that indicates what the brain gains from accurately remembering an event and what is has to pay for that memory. This could for example look like 
+%
+%\begin{equation}
+%\pi = \begin{cases} + 1, \mathrm{if \ correctly \  predicted} \\
+%-1 , \mathrm{if \ formation \ of \ new \ memory.} 
+% \end{cases}
+%\end{equation}
+%
+%Thus, the brain would try to correctly remember items to predict them in the future but would also try to prioritize memories about items that are particularly relevant in order to minimize the cost of memory consolidation. This form of ''rational'' analysis thus offers the opportunity to study the computational principle of memory formation but builds on strong assumptions that have to be informed by the literature. 
+
+
+\bibliographystyle{apalike}
+\bibliography{library} 
+
+%%%%%%%%%% Merge with supplemental materials %%%%%%%%%%
+\pagebreak
+%\widetext
+\begin{center}
+\textbf{\large Supplemental Materials: Title for main text}
+\end{center}
+%%%%%%%%%% Merge with supplemental materials %%%%%%%%%%
+%%%%%%%%%% Prefix a "S" to all equations, figures, tables and reset the counter %%%%%%%%%%
+\setcounter{equation}{0}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\setcounter{page}{1}
+\makeatletter
+\renewcommand{\theequation}{S\arabic{equation}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\bibnumfmt}[1]{[S#1]}
+\renewcommand{\citenumfont}[1]{S#1}
+
+%%%%%%%%%% Prefix a "S" to all equations, figures, tables and reset the counter %%%%%%%%%%
+
+\subsection*{Dirichlet-multinomial model}
+We will start with an application of the Dirichlet-multinomial model to all $N$ trials of the learning phase. We apply the Multinomial distribution because the Categorical distribution that we use in our task is a special case of the Multinomial distribution that consists of only one random sample during each trial (see ''Multinomial distribution'' in the Appendix). The Dirichlet distribution is the conjugate distribution of the Multinomial distribution and can therefore be utilized as a prior. 
+
+\paragraph{Likelihood}
+After the observation of $N$ pictures during the learning phase, the likelihood of the data $\boldsymbol{\mathcal{D}}=\{x_1,...x_N\}$, where $x_i \in \{1,...,K\},$ can be denoted as
+
+\begin{equation}
+p(\boldsymbol{\mathcal{D}}|\boldsymbol{\theta})= \prod^K_{k=1}\theta^{N_k}_k 
+\end{equation}
+
+where $N_k = \sum_{i=1}^{N}\mathbb{I}(y_i=k)$. Intuitively, $\boldsymbol{\mathcal{D}}$ denotes the observed data with each $x_i$ indicating how often each category was shown during the learning phase. Please note the similarity to the Categorical distribution that was introduced in ''Formal description of the task''. The major difference is that we now consider all trials of the learning phase.
+
+\paragraph{Prior}
+The prior is the Dirichlet distribution
+\begin{equation}
+\begin{aligned}
+p(\boldsymbol{\theta}) & = \mathrm{Dir}(\boldsymbol{\theta}|\boldsymbol{\alpha})\\
+&\triangleq \dfrac{1}{B(\boldsymbol{\alpha})} \prod^K_{k=1}\theta_k^{\alpha_{k-1}}\mathbb{I}(\mathrm{x}\in S_K).	
+\end{aligned}
+\end{equation}
+In our case, the Dirichlet distribution is used to model our prior expectations (i.e., at the beginning of the learning phase) about the category probabilities, which is often referred to as pseudo-counts. The parameter that reflects our prior is denoted by $\boldsymbol{\alpha}$. I think it is fair to assume that participants start the task with a flat prior that reflects that all categories are equally likely, which corresponds to $\boldsymbol{\alpha} = (1,1,...,1)$. These values thus indicate the assumption that each category has been pseudo-counted once. For a few more details about the Dirichlet distribution see ''Dirichlet distribution'' in the Appendix and \cite{Murphy2012}.
+
+\paragraph{Posterior}
+The posterior is a Dirichlet distribution that results from multiplying the likelihood by the prior
+
+\begin{equation}
+\begin{aligned}
+p(\boldsymbol{\theta}|\boldsymbol{\mathcal{D}})
+&\propto p(\boldsymbol{\mathcal{D}}|\boldsymbol{\theta})p(\boldsymbol{\theta})\\
+&\propto \prod^K_{k=1} \theta^{N_k}_k \theta_k^{a_{k}-1} \\
+&= \prod^K_{k=1} \theta^{\alpha_k+N_{k}-1}_k \\ 
+&= \mathrm{Dir}(\boldsymbol{\theta}|\alpha_1 + N_1,...,\alpha_K + N_K).
+\end{aligned}
+\end{equation}
+The only operation that is required here is thus the addition of the observed data to the prior. This affords a simple application of the model without the need for complex computations.
+
+\paragraph{Maximum a posteriori and maximum likelihood estimate}
+In order to obtain an estimate of the category probabilities, we can compute the expected value of the posterior to obtain the maximum a posteriori (MAP) estimate:
+\begin{equation}
+\hat{\theta}_k = \dfrac{N_k+\alpha_k-1}{N+\alpha_0-K}.
+\end{equation}
+Under the assumption that $\boldsymbol{\alpha} = (1,1,...,1)$, the MAP estimate is equal to the maximum likelihood (ML) estimate that is based on the empirically observed frequency of the categories:
+\begin{equation}
+\hat{\theta}_k = \dfrac{N_k}{N}.
+\label{eq:dmm}
+\end{equation}
+We already noted that in this simple version of the task, we are only required to count our observed categories. Now we additionally know that the category probabilities can simply be obtained by computing the empirical fraction of the number of times each category was presented. This affords a straightforward reformulation of our Dirichlet-multinomial model into an iterative prediction error correcting scheme.
+
+
+\subsection{Delta-rule formulation}\label{delta}
+
+We now show how eq. \ref{eq:dmm} can be translated into the delta rule. Let $\hat{\theta}_{n,j}$ denote the estimate of the $j$th category probability at trial $n$, then the estimate of the $j$th category at trial $n+1$, denoted by $\hat{\theta}_{n+1,j}$, can be computed according to 
+
+
+\begin{equation}
+\begin{aligned}
+\hat{\theta}_{n+1,j} &= \dfrac{n_{j}}{n} \\ 
+&= \dfrac{1}{n}n_{j} \\ 
+&= \dfrac{1}{n}\sum_{i=1}^{n}x_{i,j} \\
+&= \dfrac{1}{n}\Big(x_{n,j} + \sum_{i=1}^{n-1}x_{i,j}  \Big) \\
+&= \dfrac{1}{n}\Big(x_{n,j} + (n-1)\hat{\theta}_{n,k} \Big) \\
+&= \dfrac{1}{n}\big(x_{n,j}+n\hat{\theta}_{n,j}-\hat{\theta}_{n,j}\big) \\
+&= \hat{\theta}_{n,j} + \dfrac{1}{n}(x_{n,j} - \hat{\theta}_{n,j}),
+\end{aligned}
+\label{eq:model}
+\end{equation}
+where $(x_{n,j}-\hat{\theta}_{n,j}) =: \delta_{n,k}$ corresponds to the prediction error and the learning rate is defined as $\dfrac{1}{n}=:\alpha_{n,j}$ \citep{Sutton1998}.
+
+\subsection*{Dirichlet distribution}
+
+\paragraph*{Probability simplex}
+
+\begin{equation}
+S_K = \{\mathbf{x} : 0\le x_k \le 1, \sum^K_{k=1}x_k=1\}
+\end{equation}
+
+\paragraph*{Probability density function}
+
+\begin{equation}
+\mathrm{Dir}(\boldsymbol{\mathrm{x}}|\boldsymbol{\alpha}) \triangleq \dfrac{1}{B(\mathbf{\boldsymbol\alpha})} \prod^K_{k=1}x_k^{\alpha_{k-1}}\mathbb{I}(\boldsymbol{\mathrm{x}}\in S_K)	
+\end{equation}
+
+where
+
+\begin{equation}
+B(\boldsymbol{\alpha}) \triangleq \dfrac{\prod_{k=1}^K \Gamma(\alpha_k)}{\Gamma(\alpha_0)} 	
+\end{equation}
+
+and where
+
+
+\begin{equation}
+\alpha_0 \triangleq \sum_{k=1}^K\alpha_k.
+\end{equation}
+
+
+\subsection*{Multinomial distribution}
+
+Let $\boldsymbol{\mathrm{x}}=(x_1...x_K)$ be a random vector, where $x_j$ denotes the number of times picture $j$ in the current context occurs.
+
+\paragraph*{Probability mass function}
+
+\begin{equation}
+\mathrm{Mu}(\boldsymbol{\mathrm{x}}|n,\boldsymbol{\theta}) \triangleq \binom{n}{x_1...x_k} \prod^{K}_{j=1}\theta_j^{x_j}
+\end{equation}
+where
+
+\begin{equation}
+ \binom{n}{x_1...x_k}\triangleq\dfrac{n!}{x_1!x_2!...x_3!}.
+\end{equation}
+In case of $n=1$:
+
+\begin{equation}
+\mathrm{Mu}(\boldsymbol{\mathrm{x}}|1,\mathbf{\theta})= \mathrm{Cat}(x|\boldsymbol{\theta})\triangleq \prod^K_{j=1}\theta^{\bold{I}(x_j=1)}
+\end{equation}
+
+%\bibliographystyle{apalike}
+%\bibliography{library} 
+
+%\bibliographySM{library}
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=1.5\textwidth]{figures/ParameterRecoveryAll.jpg}}
+\caption{\textbf{Parameter Recovery.} Parameter Recovery for the two experiment and for the three models.}
+\label{fig:parameter_recovery}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=1\textwidth]{figures/ModelRecovery.jpg}}
+\caption{\textbf{Model Recovery.} Confusion Matrices showing model recovery for a) experiment 1 and b) experiment 2. The numbers show the probability of data generate by model X to be best fit by model Y.}
+\label{fig:model_recovery}
+\end{figure}
+
+\end{document}

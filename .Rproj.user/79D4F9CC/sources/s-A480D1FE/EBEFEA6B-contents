@@ -1,0 +1,295 @@
+#  
+# source the files with the function  s
+rm(list=ls())
+library(here)
+library(foreach)
+library(doParallel)
+library(beepr)
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+cd<-getwd()
+# source the files with the function
+source(("computational_model/helper_functions/BICcompute.R"))
+source(("computational_model/helper_functions/searchGlobal.R"))
+source(("computational_model/helper_functions/softmax.R"))
+source(("computational_model/helper_functions/getFiles.R"))
+source(("computational_model/helper_functions/modelFunPhase2.R"))
+source(("computational_model/helper_functions/getx.R"))
+source(("computational_model/helper_functions/getobs.R"))
+source(("computational_model/helper_functions/getU.R"))
+setwd(cd)
+# likelihood functions
+setwd("computational_model/likelihood_functions")
+likfun<-list.files()
+for (f in 1:length(likfun)){
+  source(likfun[f])
+}
+setwd(cd)
+# fitting functions
+setwd("computational_model/fitting_functions")
+fitfun<-list.files()
+for (f in 1:length(fitfun)){
+  source(fitfun[f])
+}
+setwd(cd)
+
+# very important, the setup
+setup <-"pilot"
+
+# select only phase 1
+phase1Files<-selPhase(phase = 1, experiment = "pilot")
+setwd(cd)
+
+# get phase 2
+phase2Files<-selPhase(phase = 2, experiment = "pilot")
+setwd(cd)
+# set the number of the starting points for the optimization function
+startPoints<-1
+
+Args<-commandArgs(trailingOnly = T) 
+# the arguments are : 
+#   1.printingfile: y or n
+#   2.upper beta bound
+#   3.initial Q
+#   4.modeltype
+
+# for composite models
+# the arguments are : 
+#   1.printingfile: y or n
+#   2.upper beta bound
+#   3.upper beta_c bound
+#   4.initial Q
+#   5.initial Q2
+#   6.modeltype
+
+#Args<-c("y", 30 ,30,0,  0,"RescorlaWagner_obsALL1nstick")
+
+
+print(Args)
+printfile<-Args[1]
+
+# set boundaries for the optimization algorithm
+alphaBound<-c(0,1)
+
+# for the beta, take the 2 one from the command line
+if (Args[2]=="infinite"){
+  beta2<-"i"}else {beta2<-as.numeric(Args[2])}
+
+betaBound<-c(0,beta2)
+
+# some arguments depend on the kind of the model (single, composite)
+if (length(Args)<5){ # for single models
+  
+  # if this is the model with the dual learning rate
+  if (Args[4]=="RescorlaWagner_obsALLdualLR"){
+    alpha_cBound<-c(0,1)
+  } else{
+  
+  # the second alpha is set to null because we only need the first
+  alpha_cBound <-NULL
+  
+  }
+  beta_cBound<-NULL
+  
+  # values at which Q is initialised
+  initialQ <- matrix(as.numeric(Args[3]), ncol=3, nrow=6)
+  
+  # Type of model
+  modeltype = Args[4]
+  
+  # create a name for the output file
+  name<-paste("premup-pilot/outputs/group_level/computational_model/ParameterEstimation.", "betalimit=",betaBound[2],".initialQ=",  Args[3], ".", modeltype, sep="")
+  
+} else {
+  # the second alpha is set to null because we only need the first
+  if (Args[3]=="infinite"){
+    betac2<-"i"}else {betac2<-as.numeric(Args[3])}
+  alpha_cBound <-c(0,1)
+  
+  
+  beta_cBound<-c(0,betac2)
+  
+  # values at which Q is initialised
+  initialQ <- matrix(as.numeric(Args[4]), ncol=3, nrow=6)
+  
+  # values at which Q2 is initialised
+  initialQ2 <- matrix(as.numeric(Args[5]), ncol=3, nrow=6)
+  
+  # Type of model
+  modeltype = Args[6]
+  
+  # create a name for the output file
+  name<-paste("premup-pilot/outputs/group_level/computational_model/ParameterEstimation.", "betalimit=",betaBound[2],".initialQ=",  Args[4], ".", modeltype, sep="")
+}
+
+print(Args)
+
+# assign fitting and likelihood functions
+fittingfunction = get( paste("fit_", modeltype, sep="" ))
+
+# if this is the model with the feedb and Q
+if (modeltype=="RescorlaWagner_feedbAndQ"){
+  
+  likelihoodfunction<-get("lik_RescorlaWagner_feedb")
+  
+} else{
+  
+  likelihoodfunction = get(paste("lik_", modeltype,  sep=""))
+  
+}
+
+# initialize matrix to store the parameters
+Parameters<-matrix(NA, nrow = length(phase1Files),ncol = 7) 
+colnames(Parameters)<-c("PartNum", "alpha","beta", "alpha_c", "beta_c", "BIC", "LogLikel") #names of the columns
+
+# loop through participants
+# make it in parallel
+cores=detectCores()
+cl <- makeCluster(cores[1]-1, outfile="") # to not overload your computer
+registerDoParallel(cl)
+
+Param<-foreach (j=1:length(phase1Files),.combine=rbind, .packages='pracma')  %dopar% {
+#Param<-foreach (j=1:2,.combine=rbind, .packages='pracma')  %dopar% {
+  
+  tryCatch({
+  
+  print(paste("Working on participant", j))
+  #counter for the column number of the Matrix that stores the variables
+  
+  # read the files
+  file1<-read.csv(paste("premup-pilot/trial_sequences/",phase1Files[j], sep=""))
+  
+  file2<-read.csv(paste("premup-pilot/trial_sequences/",phase2Files[j], sep=""))
+  
+  # merge them
+  file<-rbind(file1, file2)
+  
+  # estimate alpha and beta, calculating the time
+  start_time<-Sys.time()
+  est<-searchGlobal(data = file,alphaBound= alphaBound,betaBound= betaBound, alpha_cBound = alpha_cBound, beta_cBound = beta_cBound,
+                    startPoints=  startPoints,initialQ= initialQ, initialQ2= initialQ2, fittingfunction =fittingfunction)
+  end_time<-Sys.time()
+  print(end_time-start_time)
+  
+  alpha<-est$alpha
+  if (is.null(alpha)){# this is for the model 1/n where the alpha is null.
+    alpha<-NA
+  }
+  
+  beta<-est$beta
+  if (is.null(beta)){# this is for the model nobeta where the beta is null.
+    beta<-NA
+  }
+  
+  BIC<-est$BIC
+  LL<-est$logLikel
+  
+  # feed the RWM with the alpha and beta obtained to get Qs and PE
+  if (length(Args)>5){
+    if (!is.null(formals(fittingfunction)$omegaBound)){ # if this is the model with stickiness (omega)
+     if (is.null(formals(fittingfunction)$alphaBound)){ # if this is the bayesian
+       
+       beta_c<-est$omega
+       par<-likelihoodfunction(file,  beta, beta_c, 2, initialQ, initialQ2)
+       alpha_c<-NA
+       alpha<-NA
+       
+     }else{ # obsALL with stickiness
+      beta_c<-est$omega
+      par<-likelihoodfunction(file, alpha, beta, beta_c, 2, initialQ, initialQ2)
+      alpha_c<-NA
+     }
+    }else{ # for all the other dual models
+      alpha_c<-NA
+      beta_c<-est[[4]]
+      Parameters<-likelihoodfunction(Data = file,alpha = alpha,
+                                     beta = beta, print=2,  
+                                     initialQ=initialQ, initialQ_o=initialQ2)
+    }
+    
+    
+  }else if (length(formals(fittingfunction))==5) { # model with dual learning rate or feedb and obs 
+    if (!is.null(formals(fittingfunction)$initialQ_o)){
+      
+      par<-likelihoodfunction(file,alpha, beta,2, initialQ,  initialQ2) # feedbandObs
+      alpha_c<-NA
+      beta_c<-NA
+      
+    } else{
+      par<-likelihoodfunction(file,est$alphapos, est$alphaneg, beta,2, initialQ) # dual learning rate
+      alpha<-est$alphapos
+      alpha_c<-est$alphaneg
+      beta_c<-NA 
+      
+    } 
+    
+    
+    
+  }else if (length(Args)>2){
+    if (length(formals(fittingfunction))<2){ # dirichlet
+      par<-likelihoodfunction(file, alpha,2)
+      beta<-NA
+      alpha_c<-NA
+      beta_c<-NA
+    }else if (length(formals(fittingfunction))==3){ # if it is the 1/n model or the no beta model
+      
+      if (is.null(formals(fittingfunction)$betaBound)){
+        par<-likelihoodfunction(file, alpha,2, initialQ)
+        beta<-NA
+        alpha_c<-NA
+        beta_c<-NA 
+        
+      }else if (is.null(formals(fittingfunction)$initialQ)){ # idf this is the model with feedb and Q
+        initialQ<-matrix(est$Q, ncol=3, nrow=6)
+        par<-likelihoodfunction(file, alpha,beta,2 , initialQ)
+        alpha_c<-est$Q
+        beta_c<-NA
+        
+      } else{ # model 1/n
+        par<-likelihoodfunction(file, beta,2, initialQ)
+        alpha<-NA
+        alpha_c<-NA
+        beta_c<-NA 
+        print("1/n")
+      }
+      
+    }else  {
+      par<-likelihoodfunction(file, alpha, beta,2, initialQ)
+      alpha_c<-NA
+      beta_c<-NA
+      print("right one")
+    }
+  }
+  
+  }, error = function(e) { print(paste("problem with number", j))})
+  
+  Parameters<-c(round(as.numeric(substr(phase1Files[j],5,6)),1),
+                alpha, beta,alpha_c, beta_c, BIC, LL)
+  Parameters
+  
+  
+
+}
+
+paramet<-c("alpha", "beta", "alpha_c", "beta_c", "LL", "BIC")
+
+for (p in paramet){
+  if (!exists(p, inherits = F)){
+    print(p)
+    assign((p),NA)
+  }
+}
+
+colnames(Param)<-c("PartNum", "alpha","beta", "alpha_c", "beta_c", "BIC", "LogLikel") #names of the columns
+
+dataframe<-as.data.frame(Param)
+
+if (printfile=="y"){
+  write.csv(dataframe, paste(name, ".csv", sep=""), row.names = F)
+}
+
+stopCluster(cl)
+
+beep(8)

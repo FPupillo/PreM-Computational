@@ -1,0 +1,27 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1626087208718.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "1507F7BB",
+    "lastKnownWriteTime" : 1623834294,
+    "last_content_update" : 1623834294,
+    "path" : "~/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/analysis_files/analysis.pilot.R",
+    "project_path" : "computational_model/analysis_files/analysis.pilot.R",
+    "properties" : {
+        "cursorPosition" : "0,0",
+        "scrollLine" : "0",
+        "source_window_id" : "",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

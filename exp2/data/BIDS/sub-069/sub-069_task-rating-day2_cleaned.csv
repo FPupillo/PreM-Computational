@@ -1,0 +1,13 @@
+"","participant","scn_file","scn_cat","obj_cat_top","min_resp_top","max_resp_top","slider.response","slider.rt","iteration_index","corr_rat","group"
+"243",69,"stim/11.jpeg",1,"Household items",45,55,4,9.000999928,1,50,1
+"245",69,"stim/21.jpeg",2,"Music items",45,55,10,12.07800007,1,50,1
+"242",69,"stim/31.jpeg",3,"Household items",65,75,40,8.037000179,1,70,1
+"244",69,"stim/41.jpeg",4,"Household items",65,75,NA,NA,1,70,1
+"241",69,"stim/51.jpeg",5,"Music items",5,15,80,12.74600005,1,10,1
+"246",69,"stim/61.jpeg",6,"Household items",5,15,95,15.74099994,1,10,1
+"581",69,"stim/11.jpeg",1,"Household items",45,55,10,5.621000051,2,50,1
+"578",69,"stim/21.jpeg",2,"Music items",45,55,10,15.90300012,2,50,1
+"582",69,"stim/31.jpeg",3,"Household items",65,75,80,6.465999842,2,70,1
+"580",69,"stim/41.jpeg",4,"Household items",65,75,89,11.31800008,2,70,1
+"579",69,"stim/51.jpeg",5,"Music items",5,15,80,10.92499995,2,10,1
+"583",69,"stim/61.jpeg",6,"Household items",5,15,90,5.105999947,2,10,1

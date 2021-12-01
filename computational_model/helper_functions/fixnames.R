@@ -1,0 +1,33 @@
+#---------------------------------------------------------------------------------------------#
+# function that create new variables with names that match the scripts
+# it returns a data frame with the new variables created
+#---------------------------------------------------------------------------------------------#
+
+fixnames<-function(Data){
+
+  file1<-Data
+  # change name of the response variable
+  file1$response<- file1$key_resp_trial.keys
+  
+  file1$response<-(as.character(file1$response))
+  # change name of the object category variable
+  file1$object_cat<-file1$obj_cat_num
+  # change name to scene categ
+  file1$scene_cat<-file1$scn_cat
+  # convert trial response
+  for (n in 1: nrow(file1)){
+    if (!is.na(file1$response[n])){
+    if (file1$response[n] == "left"){
+      file1$response[n] <- (1)
+    } else if (file1$response[n] == "right"){
+      file1$response[n] <- (2)
+    } else if (file1$response[n] == ""){
+      file1$response[n] <-(0)
+    }
+    }
+  }
+  
+  file1$response<-as.numeric(file1$response)
+
+return(file1)
+}

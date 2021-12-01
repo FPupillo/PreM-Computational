@@ -1,0 +1,58 @@
+#-------------------------------------------------------------------------------------------------#
+# Explore for priors
+# Script to explore contingencies for the priors setup
+#-------------------------------------------------------------------------------------------------#
+
+rm(list=ls())
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+cd<-getwd()
+# source the files with the function
+# source(("computational_model/helper_functions/BICcompute.R"))
+# source(here("computational_model/helper_functions/searchGlobal.R"))
+# source(here("computational_model/helper_functions/softmax.R"))
+# source(here("computational_model/helper_functions/getFiles.R"))
+# source(here("computational_model/helper_functions/modelFunPhase2.R"))
+# source(here("computational_model/helper_functions/getResp.R"))
+# source(here("computational_model/helper_functions/getProbStrongWeak.R"))
+# source(here("computational_model/helper_functions/getx.R"))
+# source(here("computational_model/helper_functions/getU.R"))
+source(here("computational_model/helper_functions/fixnames.R"))
+source(here("computational_model/helper_functions/cumAccbyScene.R"))
+# source(here("computational_model/helper_functions/getobs.R"))
+
+library(ggplot2)
+# library(lme4)
+library(dplyr)
+# library(reshape2)
+# library(lmerTest)
+# library(car)
+#source("computational_model/helper_functions/cumAccbyScene.R")
+
+#setup = "priors"
+
+# select only learning phase
+phase1Files<- read.csv2("premup-priors/outputs/group_level/group_task-learning.csv",sep=";",
+                        header=T,stringsAsFactors=FALSE)
+
+# pnow encoding phase
+phase2Files<- read.csv2("premup-priors/outputs/group_level/share/group_task-rec.csv",sep=";",
+                        header=T,stringsAsFactors=FALSE)
+
+# change names
+phase1Files<-fixnames(phase1Files)
+
+# now get cumacc per participant and scene
+phase1Files<-cumAccbyScene(phase1Files)
+
+# plot it
+ggplot(phase1Files, aes(x = trialNbyscene, y=cumAccbyScene))+   stat_summary(fun.y="mean",geom="line")+
+  facet_wrap(scene_cat~.)
+
+# by sub
+ggplot(phase1Files, aes(x = trialNbyscene, y=cumAccbyScene))+   stat_summary(fun.y="mean",geom="line")+
+  facet_grid(scene_cat~participant)
+
+
+

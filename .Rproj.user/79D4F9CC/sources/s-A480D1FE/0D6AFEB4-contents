@@ -1,0 +1,147 @@
+---
+title: "Analysis PREMUP-priors"
+author: "Francesco Pupillo"
+date: "4/16/2021"
+html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r initialize, echo=TRUE, message=FALSE, warning=FALSE}
+# model based stats
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+setup = "priors"
+
+cd<-getwd()
+
+setwd("output_files")
+
+getwd()
+# get the files
+files<-list.files( pattern ="fittedData.priors.*")
+
+```
+
+
+```{r echo=TRUE}
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+getwd()
+
+# absolute path
+abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
+
+# loop through the files
+for (file in files){
+
+fittedData<-read.csv(paste(abs, file, sep=""))
+
+# convert variables
+fittedData$PE_level<-as.factor(fittedData$PE_level)
+fittedData$session<-as.factor(fittedData$session)
+#levels(fittedData$PE_level)<-c("LowPE", "MediumPE", "HighPE")
+levels(fittedData$session)<-c("ImmediateRec", "DelayedRec")
+
+ ###############################################################
+  #### PE depending on the response
+  ##############################################################
+ fittedData$PEresp<-NA
+  if (!is.null(fittedData$Delta1)){
+  for (o in 1: nrow(fittedData)){
+    if (fittedData$response[o]==1){
+      fittedData$PEresp[o]<-fittedData$Delta1[o]
+    }else if(fittedData$response[o]==2){
+      fittedData$PEresp[o]<-fittedData$Delta2[o]
+    } else {fittedData$PEresp[o]<-NA}
+  }
+} else {fittedData$PEresp[o] <-fittedData$Delta}
+  
+fittedData$PE_level<-as.factor(fittedData$PE_level)
+
+  #summarise
+  fittedData %>%
+    group_by (PE_level) %>%
+    summarise(mean=mean(PEresp, na.rm=T))
+
+  
+ # distribution of PE by condition
+PErespdistr<-ggplot(fittedData, aes(x= PEresp, fill=PE_level))
+ PErespdistr+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE based on the feedback")
+
+   # by participant
+
+  g<-ggplot(fittedData, aes(x=PEresp))+ geom_histogram()+
+    #aes(colour = factor(SubNum))
+    facet_wrap(.~SubNum)
+print(g) 
+    # plot it PE by recog
+ PErespPlot<-ggplot(fittedData, aes(x=PEresp, y=id_acc))
+  PErespPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+              se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(.~session) +ggtitle("effect of feedback-based PE on memory")
+  
+  ###############################################################
+  #### PE depending on the observation
+  ##############################################################
+
+  fittedData$PEobs<-NA
+  for (o in 1: nrow(fittedData)){
+    if (fittedData$object_cat[o]==1){
+      fittedData$PEobs[o]<-fittedData$Delta1[o]
+    }else if(fittedData$object_cat[o]==2){
+      fittedData$PEobs[o]<-fittedData$Delta2[o]
+  }
+ 
+  #summarise
+  fittedData %>%
+    group_by (PE_level) %>%
+    summarise(mean=mean(PEobs, na.rm=T)) 
+  
+    # distribution of PE by condition
+  PEobsdistr<-ggplot(fittedData, aes(x= PEobs, fill=PE_level))
+  print(
+  PEobsdistr+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE based on the observation")
+  )
+   # by participant
+  ggplot(fittedData, aes(x=PEobs))+ geom_histogram()+
+    #aes(colour = factor(SubNum))
+    facet_wrap(.~SubNum)
+  
+      # plot it PE by recog
+ PErespPlot<-ggplot(fittedData, aes(x=PEobs, y=id_acc))
+  PErespPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+              se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(.~session) +ggtitle("effect of feedback-based PE on memory")
+  
+    # analyse
+  modobs<-glmer(id_acc~PEobs*session+(PEobs*session|SubNum),family=binomial,
+                data = fittedData, 
+                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+ 
+  summary(modobs)
+}
+```

@@ -1,0 +1,49 @@
+#!/bin/bash
+# script to run parmeter estimation for different models
+
+setups="pilot"
+
+echo $pwd
+# loop through setups
+for setup in $setups
+do
+echo working on $setup
+
+if [ $setup == "pilot" ]
+then
+initialQ=0.33
+else
+initialQ=0.5
+fi
+
+echo initial Q = $initialQ
+# model1="RescorlaWagner_obsALLnobeta RescorlaWagner_feedb RescorlaWagner_feedbAndQ
+#  RescorlaWagner_feedbmin1 RescorlaWagner_obs RescorlaWagner_obsALL
+# RescorlaWagner_obsALLdualLR RescorlaWagner_obsALL1nfree RescorlaWagner_obsALL1n"
+ 
+model1="OptimalBayesian_feedb"
+
+#model2="RescorlaWagner_obsALLstick RescorlaWagner_obsALL1nstick 
+#RescorlaWagner_feedbAndObs RescorlaWagner_feedbCK "
+
+#model2="RescorlaWagner_feedbAndObs"
+
+# for single models
+for model in $model1
+do
+echo working on $model
+
+Rscript parameter_estimation/Parameter_estimation_Paral_$setup.R y 10 $initialQ $model
+
+done
+
+# for combined models
+# for model in $model2
+# do
+# echo working on $model
+# 
+# Rscript parameter_estimation/Parameter_estimation_Paral_$setup.R y 10 10 $initialQ $initialQ $model
+# 
+# done
+
+done

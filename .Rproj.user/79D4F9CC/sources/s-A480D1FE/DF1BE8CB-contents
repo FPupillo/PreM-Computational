@@ -1,0 +1,320 @@
+--- 
+  title: "Analysis Computational Models"
+  author: "Francesco Pupillo"
+  #date: "03/04/2021"
+  output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r initialize, echo=FALSE, message=FALSE, warning=FALSE}
+# model based stats
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+# get all the files for phase2
+cd<-getwd()
+setwd("output_files")
+files1<-list.files(pattern= c("phase2.betalimit=10.*.csv$"))
+setwd(cd)
+
+```
+
+```{r loop through participants, echo=FALSE, message=FALSE, warning=FALSE, include_graphics=T}
+winningmodels<-c(2,3)
+
+for (f in winningmodels){
+  
+
+Phase2<-read.csv(paste("output_files/", files1[f], sep=""))
+
+# get the model type
+modsub<-sub(".*RescorlaWagner_", "", files1[f])
+if (nchar(modsub)>20){ # if it is the dirichlet of the choicekernel
+  if (length(grep(pattern = "ChoiceKernel", modsub))>0){
+    modsub<-"ChoiceKernel.csv"
+    modeltype<-paste( substr(modsub, 1, nchar(modsub)-4), sep="")
+    # get the simulation function
+    simulationfunction = get(paste("simulate_", modeltype,  sep=""))
+    
+  } else if (length(grep(pattern = "Dirichlet", modsub))>0){
+    modsub<-"Dirichlet.csv"
+    modeltype<-paste( substr(modsub, 1, nchar(modsub)-4), sep="")
+    # get the simulation function
+  }
+}else{
+  modeltype<-paste("RescorlaWagner_", substr(modsub, 1, nchar(modsub)-4), sep="")
+  # get the simulation function
+  modelsim<-substr(modeltype, 16, nchar(modeltype))
+}  
+print(paste("working on model", modeltype, sep=""))
+
+subj<-unique(Phase2$SubNum)
+
+name<-paste("output_files/analysisGraphs.", modeltype , sep="")
+
+#pdf(paste(name, ".pdf", sep=""))
+
+# loop through subjects to get the recognition data
+for (j in 1:length(subj)){
+  
+  # file name 
+  if (subj[j]<10){
+    filename<-paste("PEM_0", subj[j],"_results.csv", sep="")
+  }else{ 
+    filename<-paste("PEM_", subj[j],"_results.csv", sep="")
+  }
+  
+  # read data
+  data <- read.csv(paste("merged_phases/", filename, sep="" ))
+  
+  # select only old items
+  data<-data[data$rec_trialType=="old",]
+  
+  # append it to the final dataset  
+  if (!exists('data3final')){
+    data3final<-data
+  } else{
+    data3final<-rbind(data3final, data)
+  }
+}
+
+  # now merge the two datasets (encoding - model and recognition)
+  DataAll<-cbind(Phase2,data3final)
+  DataAll$pe_level<-as.factor(DataAll$pe_level)
+  DataAll$rec_session<-as.factor(DataAll$rec_session)
+  levels(DataAll$pe_level)<-c("LowPE", "MediumPE", "HighPE")
+  levels(DataAll$rec_session)<-c("ImmediateRec", "DelayedRec")
+  
+  # exclude fillers
+  DataAll<-DataAll[DataAll$pred_Cond!=4,]
+  
+  # exclude participant 19, who got 0 in the immediate recognition and above 90% aat the delayed recognition
+  #exclZ<-exclZero()
+  exclZ<-19
+  
+  for (j in 1: length(exclZ)){
+    DataAll<-DataAll[DataAll$SubNum!=exclZ[j],]
+  }
+  
+  ###############################################################
+  #### PE depending on the response
+  ##############################################################
+   DataAll$PEresp<-NA
+  if (!is.null(DataAll$Delta1)){
+  for (o in 1: nrow(DataAll)){
+    if (DataAll$response[o]==1){
+      DataAll$PEresp[o]<-DataAll$Delta1[o]
+    }else if(DataAll$response[o]==2){
+      DataAll$PEresp[o]<-DataAll$Delta2[o]
+    }else if(DataAll$response[o]==3){
+      DataAll$PEresp[o]<-DataAll$Delta3[o]
+    } else {DataAll$PEresp[o]<-NA}
+  }
+} else {DataAll$PEresp[o] <-DataAll$Delta}
+  
+  
+  # exclude participant 19, who got 0 in the immediate recognition and above 90% aat the delayed recognition
+  #exclZ<-exclZero()
+
+  #summarise
+  DataAll %>%
+    group_by (pe_level) %>%
+    summarise(mean=mean(PEresp, na.rm=T))
+  
+  
+
+  # distribution of PE by condition
+  PErespdistr<-ggplot(DataAll, aes(x= PEresp, fill=pe_level))
+    print(
+ PErespdistr+geom_histogram()+ facet_grid( ~ pe_level)+ggtitle("PE based on the feedback")
+  )
+
+  # by participant
+    print(
+  ggplot(DataAll, aes(x=PEresp))+ geom_histogram()+
+    #aes(colour = factor(SubNum))
+    facet_wrap(.~SubNum)
+    )
+  
+  # plot it PE by recog
+ PErespPlot<-ggplot(DataAll, aes(x=PEresp, y=rec_acc))
+ print(
+ PErespPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"), se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(.~rec_session) +ggtitle("effect of feedback-based PE on memory")
+ )
+  
+  
+  # plot acc
+ ggplot(DataAll, aes(rec_acc, acc))+ geom_bar(aes(rec_acc, acc, fill = rec_acc),
+                                                    position="dodge",stat="summary", fun.y="mean", SE=T, alpha = 0.5)+
+    stat_summary(fun.data = "mean_cl_boot", size = 0.8, geom="errorbar", width=0.2 )+
+    # geom_jitter( size=1,width=0.1)+
+    # geom_point()+
+    #theme(axis.text.x = element_blank())+ # we are showing the different levels through the colors, so we can avoid   naming the bars
+    #theme(axis.ticks.x = element_blank())+
+    facet_grid(.~rec_session)+
+    theme(strip.text.x = element_text(size = 13))+ 
+    ylab("% recognition")+
+    xlab("Accuracy")
+
+  
+  # analyse
+  modfeedb<-glmer(rec_acc~PEresp*rec_session+(PEresp*rec_session|particip_code),family=binomial, data = DataAll)
+  
+  print(
+  summary(modfeedb)
+  )
+  print(
+  car::Anova(modfeedb, type="III")
+  )
+
+# break down the interaction
+  # only immediate recognition
+modfeedbImm<-glmer(rec_acc~PEresp+(PEresp|particip_code),family=binomial, data =   DataAll[DataAll$rec_session== "ImmediateRec",])
+
+# only delayed
+modfeedbDel<-glmer(rec_acc~PEresp+(PEresp|particip_code),family=binomial, data =   DataAll[DataAll$rec_session== "DelayedRec",])
+    
+  print(
+    summary(modfeedbImm)
+  )
+  
+  print(
+    summary(modfeedbDel)
+  )
+  
+  ###############################################################
+  #### PE depending on the observation
+  ##############################################################
+  try({
+    
+  DataAll$PEobs<-NA
+  for (o in 1: nrow(DataAll)){
+    if (DataAll$object_cat[o]==1){
+      DataAll$PEobs[o]<-DataAll$Delta1[o]
+    }else if(DataAll$object_cat[o]==2){
+      DataAll$PEobs[o]<-DataAll$Delta2[o]
+    }else if(DataAll$object_cat[o]==3){
+      DataAll$PEobs[o]<-DataAll$Delta3[o]
+    } 
+  }
+
+  
+  #summarise
+  DataAll %>%
+    group_by (pe_level) %>%
+    summarise(mean=mean(PEobs, na.rm=T))
+  
+  # distribution of PE by condition
+  PEobsdistr<-ggplot(DataAll, aes(x= PEobs, fill=pe_level))
+  
+  print(
+  PEobsdistr+geom_histogram()+ facet_grid( ~ pe_level)+ggtitle("PE based on the observation")
+  )
+  
+  
+  # by participant
+  print(
+  ggplot(DataAll, aes(x=PEobs))+ geom_histogram()+
+    #aes(colour = factor(SubNum))
+    facet_wrap(.~SubNum)
+  )
+  
+  # plot it
+  PEobsPlot<-ggplot(DataAll, aes(x=PEobs, y=rec_acc))
+  
+    print(
+
+    PEobsPlot+
+    geom_line(stat="smooth", method="glm",formula=y~x,method.args=list(family="binomial"), se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(.~rec_session)+
+    ggtitle("PE based on the observation")
+  )
+    
+  # plot it quadratic
+  
+  # PEobsPlot<-ggplot(DataAll, aes(x=PEobs, y=rec_acc))
+  # print(
+  #   PEobsPlot+
+  #   geom_smooth(method="glm",formula=y~I(x^2),method.args=list(family="binomial"), se=F)+aes(colour = factor(SubNum))+
+  #   geom_smooth(method="glm",formula=y~I(x^2),method.args=list(family="binomial"), colour="black", se=T)+
+  #   theme(strip.text.x = element_text(size = 13))+
+  #   facet_wrap(.~rec_session)+
+  #   ggtitle("PE based on the observation, quadratic")
+  # ) 
+  
+  # analyse
+  modobs<-glmer(rec_acc~PEobs*rec_session+(PEobs*rec_session|particip_code),family=binomial, data = DataAll,
+                                                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+print(
+  summary(modobs)
+)
+print(
+  car::Anova(modobs, type="III")  
+)
+  
+# break down the interaction
+  modobsImmed<-glmer(rec_acc~PEobs+(PEobs|particip_code),family=binomial,
+                    data = DataAll[DataAll$rec_session == "ImmediateRec",],   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+  
+  modobsDelayed<-glmer(rec_acc~PEobs+(PEobs|particip_code),family=binomial,
+                    data = DataAll[DataAll$rec_session == "DelayedRec",],   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+  
+  print(
+    summary(modobsImmed)
+    )
+  
+  print(
+  summary(modobsDelayed)
+  )
+  
+#   # get the uncertainty data
+    DataAll$uncertainty<-NA
+  for (n in 1: nrow(DataAll)){
+DataAll$uncertainty[n]<-1/(var(unlist(DataAll[n, c("P1", "P2", "P3")]))+1)
+  }
+    
+  # distribution of uncertainty by condition
+  PEuncertdistr<-ggplot(DataAll, aes(x= uncertainty, fill=pe_level))
+  
+  print(
+  PEuncertdistr+geom_histogram(bins=50)+ facet_grid( ~ pe_level)+ggtitle("Distribution of uncertainty by PE level")
+    
+  )
+    
+      UncertMod<-glmer(rec_acc~uncertainty*rec_session+(uncertainty*rec_session|particip_code),
+                      data= DataAll, family= binomial,
+                      control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+  summary(UncertMod)
+    
+    # plot it PE by recog
+ UncertPlot<-ggplot(DataAll, aes(x=uncertainty, y=rec_acc))
+ print(
+ UncertPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"), se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))
+ )
+  
+    
+  }, silent=T)
+  ################### update
+  
+ 
+}
+```

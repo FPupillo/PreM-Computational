@@ -1,0 +1,756 @@
+\documentclass[a4paper,12pt]{article} 			% class, page size, fontsize 
+\usepackage[english]{babel}
+\usepackage{layouts}
+\usepackage{soul, color}
+\usepackage{amsmath} 							% math fonts
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage[mathscr]{euscript}
+\usepackage{hyperref}
+\hypersetup{colorlinks = true, linkcolor = red, citecolor = blue} 
+\usepackage{cleveref}
+\usepackage{graphicx}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage[T1]{fontenc}
+\usepackage{authblk}							% author block
+\usepackage[utf8]{inputenc}
+\usepackage{csquotes}
+\usepackage[round]{natbib}						% BibTex Layout
+\usepackage{appendix}		% Appendix
+\usepackage{caption}
+\usepackage{algorithm,algcompatible,amsmath}	% algorithm package
+\algnewcommand\INPUT{\item[\textbf{Input:}]}	% algorithm command declaration
+\algnewcommand\OUTPUT{\item[\textbf{Output:}]}	% algorithm command declaration
+%\usepackage{lineno}
+%\linenumbers
+%\graphicspath{{/Users/Rasmus/Dropbox/pivotal/pv_analyses/}}
+\usepackage{multirow}
+\begin{document}
+
+\newgeometry{a4paper, top=25mm, left=25mm, right=25mm, bottom=30mm,
+headsep=10mm, footskip=12mm}
+
+
+\section*{PIVOTAL computational modeling}
+
+The ability to learn accurate predictions about the environment is a central requirement for adaptive behavior. A mechanism that has been shown to guide the maintenance of reliable predictions is to inform future predictions by prediction errors that indicate deviations between observed and predicted outcomes \citep{Daw2013, Niv2008, Rangel2008a, Rushworth2008}. An emerging line of research examines the relation between prediction errors and long term memory formation as a potential mechanism that explains interactions between memory and learning. In the field of reinforcement learning, the hypothesis that reward prediction errors influence memory consolidation has mainly been motivated based on anatomical considerations that the hippocampus receives dopaminergic input (e.g., \cite{Lisman2005}) and functional findings on interactions between hippocampus and striatum (e.g., \cite{Poldrack2001}). However, evidence for effects of reward prediction errors on long term memory is currently mixed. The results by \cite{Wimmer2014} may suggest that lower reward prediction errors are associated with better memory consolidation. \cite{Rouhani2018} in contrast, found a positive relation between absolute prediction error magnitudes and memory consolidation. That is, instead of a specific effect of positive versus negative prediction errors, these results indicate that the level of surprise that comes with a prediction error supports memory consolidation. Finally, \cite{Jang2018} found evidence for a specific effect of positive reward prediction errors on memory consolidation. Taken together, the relation between reinforcement learning and episodic memory is currently thus unclear and may benefit from more research using more similar paradigms and analysis approaches. 
+
+Another domain in which prediction errors may influence episodic memory are stimulus-stimulus associations that do not explicitly carry information about reward. Here, different brain areas may be responsible for such an interaction \citep{Henson2010}. The hypothesis that prediction errors for stimulus-stimulus associations influence memory consolidation has so far been considered in light of the predictive coding framework \citep{Friston2009}. The predictive interactive multiple memory systems (PIMMS) framework argues that prediction error information that results from the interaction between several memory systems drive memory encoding and retrieval \citep{Henson2010}. However, although a recent study experimentally supported to core predictions of the PIMMS account \citep{Greve2017}, there does currently not exist a formal documentation and computational implementation of such ideas. 
+
+Here, we will consider similar interactions between stimulus-stimulus associations and episodic memory. We will develop an agent-based computational model with the aim to test if prediction errors modulate memory consolidation. We will follow the notation of \cite{Murphy2012}.
+
+%The PIMMS account distinguishes between an episodic, semantic and perceptual memory system that are assumed to constantly interact. The episodic system is thought to encode specific contextual or temporal information that is for example related to the current environment. The semantic system in contrast encodes relations between stimuli that co-occur in the the environment. Finally, percptual systems are responsible to distinguish related intems from the environment as such. The PIMMS framework also makes explicit connections to the potential neural implementation of the three assumed systems: The episodic system is linked to the hippocampus, the semanstic system to the periorhinal cortex and the perceptual system to the occipitotemporal cortex. 
+
+%We will now make an attempt to identify the core principles of the framework that we will then translate into a concrete implementation. The framework assumes a hierarchical organization of the three memory systems. The episodic system is located on the highest level, followed by the semantic system and the perceptual is on the lowest level of the hierarchy. These levels in the hierarchy exchange information via forward and backward connections, where backward connections transmit predictions from one level of the hierarchy to the level below. Prediction errors emerge when prediction of the higher level do not match the information received at the level below. For example, given a certain context, the episodic system predicts the occurence of items in that context, which is stored in the semantic system. As a results, the prediction error between the actual items in that context and the predicted items in the context leads to increased memory encoding in the episodic system. This idea is modeled according to principles of Bayesian updating, where the prediction of a system corresponds to a prior distribution that is transferred to the level below; the actually perceived item corresponds to the likelihood and the update as a results of the prediction error corresponds to the posterior distribution that results from a combination of prior and likelihood.
+
+%In our implementation, we will focus on the interactions between episodic and semantic system.
+
+\section{Experimental task}
+In the experimental task, we will sequentially present object categories across several task phases that require experience-driven learning, outcome predictions and memory retrieval of the learned categories. In the learning phase, participants will passively observe 3 object categories (instruments, household, fruits and vegetables) across 24 trials (in each trial a new object is presented) and 6 blocks that consist of different context scenes (e.g., beach, snowy mountains). In the prediction phase including the same contexts, participants will be exposed to objects from categories that have been experienced in the learning phase and objects from novel categories that have not been seen before. In the final memory phase, we will test how well participants are able to recall objects from the prediction phase (recognition memory test).
+
+To test the question if prediction errors modulate memory consolidation, we will design different task contexts, in which the probabilities associated with the object categories differ from each other. In particular, each context is associated with different objects from the 3 categories. In half of the contexts (''strong prior''), one particular object category will be presented with a high probability (Figure \ref{fig:pmf} upper panel). In contrast, in the ''flat prior'' context, all categories are associated with the same probability (Figure \ref{fig:pmf} lower panel). What we will accomplish in the next phase (prediction phase) is thus different prior expectations about the probabilities of the categories while the objects as such will be novel. As a consequence, deviations and confirmations of the predictions will be associated with different prediction error magnitudes that can be linked to memory performance in the memory phase.
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=.5]{figures/contextPMF.pdf}}
+\caption{\textbf{Probability mass function of the three contexts.} Example of the Categorical probability mass function of the strong and flat prior context with 3 categories.}
+\label{fig:pmf}
+\end{figure}
+
+\section{Computational model}
+Several variants of a standard reinforcement learning model \citep{Sutton1998} were considered in order to capture the process of learning the category probabilities for each context and establishing priors on a trial-by-trial level. The models can be considered different versions of a classical reinforcement learning model:
+
+\begin{equation}
+{Q}_{t+1} = {Q}_{t} + {\alpha}({r} - {Q}_{t}),
+\end{equation}
+
+\noindent
+where \textit{Q} represent the value of a stimulus-context association at time \textit{t}, $\alpha$ the learning rate, and ${r} - {Q}_{t}$ the prediction error. The prediction error represents to what extent the current evidence {r} deviates from the estimated value. In the context of the present study, the value {Q} refers to the belief that a specific object category will be shown on a trial {t}. The learning rate regulates to what extent the evidence on trial {t} is used to update the values: Higher learning rate weights more the present evidence and the extend to which it deviates from the value estimates, while lower learning rate weights more the estimated values, and thus the past trials.  
+
+In the computational models used in this study, two main types of evidence are considered: Observational and choice-based. 
+(I thought about the names of the different prediction errors. I found the words used in Sutton and Barto (2018) interesting. They called "evaluative" feedback the one that is referred to the agents' actions, while "instructive" the feedback that does not take into account the agents' action). 
+The observational prediction error refers to the object category that is presented to participants: if a category is presented, the {r} will be one for that category, and the prediction error for that category will be ${1} - {Q}_{t}$, being ${Q_t}$ the belief that one precise category will be presented at trial {t}. By contrasts, for the categories that are not presented, the prediction error  will be ${0} - {Q}_{t}$. In this case, the source of prediction error is multiple, as it is assumed that the subjects are updating the expected values of each category. 
+The choice-based prediction error, contrarily, refers to the category predicted by the participants. If participants predicted a certain category at trial {t}, and that category is presented, the prediction error for that category will be ${1} - {Q}_{t}$, while if participants predicted a category and that one is not shown, the prediction error will be ${0} - {Q}_{t}$, where ${Q}_{t}$ is the category predicted by the participants. 
+
+ %(Check Daw, 2011, or Wilson & Collins,2019, to add the formula and description about maximum likelihood estimation). 
+% Here say some words on the reinforcement learning model, like that they are used to succesfully reflect behaviour and neural firing of midbrain. 
+
+The different models created for this study have a different number of free parameters, that are estimated through maximum likelihood at the participant level.  
+First, an optimal Bayesian model was created, describing how an ideal observer would behave on the task. As humans can deviate from the optimal solution in different ways, several other models were created. These models can be divided into "observational models" and "choice models". Observational models assume that individuals learn depending on their observation of the environment, that in this task is represented by the object categories that are presented for each scene. By contrast, the choice models take also into account participants' directly reported predictions about which category is going to be shown next. 
+
+\subsection{Optimal Bayesian Model}
+The Bayes-optimal estimates of the category probabilities can be obtained using the Dirichlet-multinomial model, which can be reformulated to a delta-rule model (see below). 
+Since we have \textit{N} categories for each \textit{n} context, the estimates $\hat{Q}$ of the probabilities can be represented by the following \textit{C}-by-\textit{J }matrix of the form
+
+\begin{equation}
+\begin{bmatrix} 
+\hat{Q}^{1,1}, & \hat{Q}^{1,2}, & ... \\
+\hat{Q}^{2,1}, & \hat{Q}^{2,2}, & ...\\
+..., &..., & \hat{Q}^{j,c} \\
+\end{bmatrix}
+\quad
+\label{matrix}
+\end{equation}
+
+
+\noindent
+Where $\hat{Q}^{j,c}$ represent the Q for category \textit{J} in context \textit{c}. For all the models considered in this study, the estimated values are stored in a category \textit{j} by context \textit{c} matrix as this one. The delta-rule model sequentially updates the category probabilities for each context according to
+
+\begin{equation}
+\hat{Q}_{t+1}^{j,c} = \hat{Q}_{t}^{j,c}  + \dfrac{1}{t}({r}_t^{j,c} - \hat{Q}_{t}^{j,c} ),
+\end{equation}
+
+\noindent
+where $\hat{Q}_{t+1}^{j,c}$ denotes the estimate of the probability of category $j$ in context ${c,j}$ at the next trial $t+1$. This estimate is based on the current estimate of the category probabilities ($\hat{Q}_{t,j}^{j, c}$) and the prediction error$ ({r}_t^{j,c} - \hat{\theta}_{t}^{j,c} )$. The feedback ${r}_t^{j,c}$ represents an array of ${N} ^{j}$ elements, in which each element refers to a category \textit{j}. The values of the array are 1 if category \textit{j} is present on trial \textit{n}, and 0 if it is not. Therefore the model is assuming that a value estimate for an object category that appears on a trial incrementally increases as a results of a positive prediction error ${\delta} = 1- Q_{t}^{j,c}$, until $Q_{t}^{j,c}$ reaches its asymptote of 1. Conversely, the values estimates of categories that are not presented on trial \textit{t} decrease as a results of a negative prediction error ${\delta} = 0- Q_{t}^{j,c}$, unless $Q_{t}^{j,c}$ for those categories has already a value of 0. The learning rate $1/t =: \alpha$ indicates to which degree the prediction error influences the updated estimate of the category probabilities.  Given that the learning rate in our case directly depends of the number of completed trials $t$ for a context \textit{C}, it continuously decays as a function of trials. This principle ensures that the influence of prediction errors is stronger at the beginning of the task. For more information about the formalization of the optimal Bayesian model, see below. 
+As the optimal Bayesian model is derived from the Dirichlet-multinomial model (see below), the model also contains information about the variance of the distribution. The variance for $\hat{\theta}_{t}^{j,c}$ is the following: 
+
+\begin{equation}
+var(\hat{Q}_{t}^{j,c})  =  \dfrac{\alpha_k^{j,c}(\alpha_0^c-\alpha_k^{j,c})}{\alpha_0^{c^2}(\alpha_0^c+1)},
+\label{eq:varianceDir}
+\end{equation}
+
+\noindent
+where ${\alpha_k}$ represents the pseudocount, i.e. the count of how many times category \textit{J} appeared in context \textit{c}, and ${\alpha_0^c} = \sum_{i=1}^{j}{\alpha}_k^{j,c}$. 
+
+
+\subsubsection{Optimal Bayesian Model with initial learning rate as a Free Parameter}
+The optimal Bayesian model might overestimate participants' abilities to learn contingencies in the first phases of the task. In order to account to potential individual differences in learning,  one possible solution is to implement a free parameter ${\alpha}$ that represents the initial learning rate of the participant. This parameter is treated as a free parameter and estimated through maximum likelihood. % add the parameter boundaries.
+The expected probabilities are updated like the optimal Bayesian model on $t=1$, while for all the subsequent trials they are updated according to the following formula:
+
+\begin{equation}
+\hat{\theta}_{t+1}^{J,C} = \hat{\theta}_{t}^{J,C}  + \dfrac{\alpha}{t}({r}_t^{J,C} - \hat{\theta}_{t}^{J,C} ),
+\end{equation}
+
+\noindent
+where ${\alpha}/t$ is the learning rate that is allowed to vary across participants. Variance is estimated as in equation \ref{eq:varianceDir}. 
+
+\subsection{Observational Models}
+
+These models also update a value according to a reinforcement learning rule. In addition to the beta parameter, the learning rate is left as a free parameter and estimated for each participant, allowing to capture individual differences. The learning rate is fixed in these model. 
+
+\subsubsection{All-categories Observational Model}
+In this model, the learning rate $\alpha$ is left as a free parameter and estimated at the participant level. 
+
+\begin{equation}
+{Q}_{t+1}^{j,c} = {Q}_{t}^{j,c}  + {\alpha}({r}_t^{j,c} - Q_{t}^{j,c}  ),
+\label{eq:obsALL}
+\end{equation}
+
+\noindent
+where ${r}_t^{j,c}$ refers to an array of ${N}{c}$ elements, as in the previous optimal Bayesian model. Therefore, it assigns the value of 1 to the category \textit{J} that is presented at trial \textit{t}, and a value of 0 to the categories that are not presented in that specific trial. The estimated values ${Q}$ are stored in a matrix as in \ref{matrix}. 
+
+\subsubsection{Observation-based Model}
+In this model, the only value estimate that is updated on every trial is the one that refers to the object category that is shown on that trial. Therefore, the model is updated according to the following rule:
+
+\begin{equation}
+{Q}_{t+1}^{j,c} = {Q}_{t}^{j,c} + {\alpha}({r_{j=a_t}} - Q_{t}^{j,c}  ),
+\end{equation}
+
+\noindent
+where  ${r_{j=a_t}}$ refers to category \textit{J} to which the object presented at trial \textit{t} belongs. 
+\subsection{Choice models}
+Another way participants might have updated their expected values is through outcome monitoring. The choice models consider this by including the outcome of their predictions as the feedback in the delta rule. 
+
+\subsubsection{All-Categories Feedback-based Model}
+In this particular model, the feedback element in the reinforcement learning model refers to the outcome of participants' prediction. 
+Estimated values (\textit{Q}) are arranged on a matrix, as in \ref{matrix}, and are initialized at 0.33. They are updated according to the following rule: 
+
+\begin{equation}
+{Q}_{t+1}^{j,c} = {Q}_{t}^{j,c}  + {\alpha}(r_t^{j,c} - Q_{t}^{j,c}  ),
+\label{eq:feedb}
+\end{equation}
+
+\noindent
+where ${Q}_{t+1}^{j,c}$ refers to the estimated value of the category \textit{j} in context \textit{c} at time \textit{t+1}, and $r_t^{j,c}$ refers  to an array of \textit{N } by \textit{c } elements related the outcome of the choice made the participant. If participants correctly predicted the correct category \textit{j} for context \textit{c}, $r_t^{j,c}$ would represent 1 for the estimated value of the category related to the category predicted by the participant, while zero to the rest of the values. 
+Note that in this model updates only the category presented at trial \textit{t} is updated on every trial. 
+
+A softmax function is then used to transform the values into probabilities:
+
+\begin{equation}
+{cp}_{t}^{J,C} = \dfrac{ exp({\beta} {Q}_t^{J,C})}{ \sum_{i=1}^{J,C}exp({\beta}{Q}_{t}^{J,C} ) },  
+\label{cp:Q}
+\end{equation}
+
+\noindent
+where ${\beta}$ is the inverse temperature parameter, and the denominator is the sum of the category probabilities \textit{J} for a context \textit{C}.
+
+
+
+
+\subsubsection{Feedback-based Model}
+The assumption here is that participants update only the value of the chosen category, according to the feedback that they receive (1 for correct answer, 0 for incorrect). Therefore, here the choice outcome is not extended beyond participants' choice. Estimated values (\textit{Q}) are arranged on a matrix, as in \ref{matrix}, and are initialized at zero. They are updated according to the following rule: 
+
+\begin{equation}
+{Q}_{t+1}^{j,c} = {Q}_{t}^{j,c}  + {\alpha}({r_{J=a_t}} - Q_{t}^{j,c}  )
+\end{equation}
+
+\noindent
+where ${r_{j=a_t}}$ refers to the category that is predicted by participant. If participants correctly predicted the category \textit{J} for context \textit{C}.
+
+\subsubsection{Feedback-based Model with inital Q as Free Parameter}
+This model is identical to the feedback-based model. However, in this model \textit{Q}s are not initialized at 0, but are treated as free parameters and estimated for each participant. 
+
+
+\subsubsection{Feedback-based Model with \textit{r}=1, -1}
+This model is similar to the feedback-based model, with the only change being in the way the feedback is computed. The value estimate ${Q}_{t+1}^{j,c}$ is updated according to equation \ref{eq:feedb} where t${rFB}= 1$ for correct responsed and ${rFB}= -1$ for incorrect ones. Choice probabilities are updated according to a softmax distribution similar to \ref{cp:Q}. 
+
+
+\begin{equation}
+{Q}_{t+1}^{J,C} = {Q}_{t}^{J,C}  + {\alpha}({r}_t - Q_{t}^{J,C}  ),
+\end{equation}
+
+\noindent
+where ${Q}_{t+1}^{J,C}$ refers to the estimated value of the category \textit{J} in context \textit{C} at time \textit{t+1}, and \textit{r} refers to the outcome of the choice made the participant. If participants correctly predicted the correct category \textit{J} for context \textit{C}, ${r}= 0$, otherwise, ${r}= 1$. The prediction error (${\delta} $) is then given by ${r}_t - Q_{t}^{J,C} $.
+Note that in this model updates only the category presented at trial \textit{t} is updated on every trial. 
+
+
+ 
+
+\subsubsection{Models with the Stickiness Parameter}
+These model include a parameter that is supposed to capture the extent to which participants' behaviour can be predicted by previous choice. 
+
+
+
+
+\subsubsection{All-categories Observational Model with Stickiness Parameter}
+This model is similar to the all-categories observational model described above, with the difference that a stickiness parameter is introduced, to consider participants' tendency to stick to their previous choice. The model includes the values $Q_{t}^{j,c}$ that are updated according to equation \ref{eq:obsALL}, while the stickiness parameter $U^{j,c}$ is updated as follows:
+
+\begin{equation}
+{U}_{t+1}^{j,c} =  \begin{cases}
+                 1 \ if \ C_t^{c,j} =1 \\ 0 \ otherwise
+                 \end{cases}, 
+\label{eq:stick}                 
+\end{equation}
+
+\noindent
+where $C_t^{c,j}$ is participants' choice at time \textit{t} for category \textit{j} in context \textit{c}. The choice probabilities are then updated according to the following rule:
+
+\begin{equation}
+{cp}_{t}^{j,c} = \dfrac{ exp({\beta} {Q}_t^{j,c} + {\omega}{U}_t^{j,c})  }
+{ \sum_{i=1}^{j,c} exp({\beta} {q}_t^{j,c} + {\omega}{U}_t^{j,c}  ) },  
+\end{equation}
+
+
+
+\subsubsection{Optimal Bayesian Model with Stickiness Parameter}
+This model is similar with the optimal Bayesian model, with the only difference that it adds a stickiness parameter reflecting the extent to which participants' behaviour can be predicted by the previous choice. While the $\hat{\theta}^{j,c}$ is estimated in the same way as in the optimal Bayesian model, participants' tendency to stick to the previous choice ($U_t^{j,c}$) is modeled as in equation \ref{eq:stick}. Variance is estimated as in equation \ref{eq:varianceDir}. 
+
+\subsubsection{All-Categories Feedback Model with Stickiness Parameter}
+In this model, the estimated value is updated through a all-categories feedback model and then a stickiness parameter is also added. 
+
+\subsection{Other models}
+
+
+\subsubsection{Feedback and Observation Model}
+This model combines the feedback and the all-categories observational model described above. Two ${J}$-by-$C$ matrices of $Q^{j,c}$ and $q^{j,c}$ for category  \textit{j} and context \textit{c} are updated according to the following rules:
+
+\begin{equation}
+{Q}_{t+1}^{J,C} = {Q}_{t}^{J,C}  + {\alpha}({r}_t^{J} - Q_{t}^{J,C}  ),
+\end{equation}
+
+\begin{equation}
+{q}_{t+1}^{J,C} = {q}_{t}^{J,C}  + {\alpha}({r}_t^{J} - q_{t}^{J,C}  ),
+\end{equation}
+
+
+\noindent
+where \textit{Q} is updated using the all-categories observational model and \textit{q} is updated using the all-categories feedback model. The two value estimates are then combined as following:
+
+\begin{equation}
+{m}_{t}^{J,C} = {\beta}{Q}^{J,C} +{\omega}{q}^{J,C}
+\end{equation}
+
+\noindent
+where {m} represents the combination of the weight ${\beta}$ that the model assigns to the value derived from the observational model ({Q}) and the weight $\omega$ assigned to the value derived from the feedback model {q}, respectively. 
+
+The softmax probability distribution is then
+
+\begin{equation}
+{cp}_{t}^{j,c} = \dfrac{ exp(m^j)}
+{ \sum_{i=1}^{j,c} exp(m)}. 
+\label{cp:double}
+\end{equation}
+
+
+\subsubsection{All-categories Feedback Model with Dual Learning Rate}
+This model is similar to the all-categories Observational learning rate described above, with the additional assumption that participants learning rate might change depending on whether participants' choice was correct or not \citep[see, e.g.,][]{Christakou2013a}. 
+A positive outcome (or feedback, or reward) automatically generates a positive prediction error while a neutral outcome  (or feedback, or reward)  produces a negative $\delta$
+($\delta$), while a incorrect response produces a negative $\delta$. Consequently, the values are updated according to the following rule:
+
+\begin{equation}
+Q_{t+1}^{j,c} =  \begin{cases}
+                Q_{t}^{j,c} + {\alpha}^+{\delta_t^{j,c}} \ if \ {\delta_t^{j,c}}>0 \\  Q_{t}^{j,c} + {\alpha}^-{\delta_t^{j,c}} \ if \ {\delta_t^{j,c}}<0
+                 \end{cases}, 
+\end{equation}
+
+\noindent
+where $ {\delta_t^{j,c}} =r_t^{j,c}$ is the prediction error and $\alpha^+$ and $\alpha^-$ are learning rate parameters for positive and negative prediction error, respectively. Choice probabilities are updated according to the softmax rule as in equation \ref{cp:Q}.
+
+\subsubsection{All-categories Observational Model with no Beta}
+This model updates the value estimates in the same way as the all-categories observational model. However, in this particular version the softmax function used to model the choice probabilities does not include the inverse temperature parameter. The distribution for choice probability is then
+
+\begin{equation}
+{cp}_{t}^{j,c} = \dfrac{ exp({Q}_t^{j,c})}{ \sum_{i=1}^{j,c}exp({Q}_{t}^{j,c} ) },  
+\end{equation}
+
+
+\noindent
+where $Q_{t}^{J,C}$ is compute in the same way as in the all-categories observational model.
+
+
+
+
+\section{Parameter Recovery}
+Before fitting the models to participants' data, a parameter recovery procedure was run, in order check whether the fitting procedure for each model gave meaningful parameters and find potential parameters boundaries. Fake data with known parameter where simulated, then the models were fit to the simulated data \citep[see][]{Wilson2019a}. First attempts to recover the parameters allowed to set the boundaries for inverse temperature parameters. 
+High correlation between simulated and fitted data indicates that the model successfully recovered the parameters that were used to generated the data. 
+% The alpha parameter, the learning rate, was drawn from a uniform distribution (min=0, max =1). The beta parameter, the inverse temperature parameter, from drawn from an exponential distribution. Beta parameter was constrained at 30 after inspection of the first parameter recovery plots, as for values that are above that boundary parameter do not affect behavior much (Wilson and Collins, 2019). Stickiness parameter is drawn from normal distribution with mean 0 and sd 1.
+
+Simulated trials were 300, which equated the number of the strong prior conditions in phase 1 and phase 2 combined. The setup simulated was the one where participants had to choose between three object category, similar to the setting of experiment 1. For the model which modeled stickiness behaviour, the trials were 390, as it also included the trial related to the weak-prior context. 
+In the simulation and in the estimation of the parameters, the priors from which the simulation parameters were sampled are shown in table \ref{tab:priors}.
+
+Plots of the results of parameter recovery are shown in figures 12-25 in the Supplementary Material section.
+
+
+
+%\begin{center}
+\begin{table} 
+    \caption{Free parameters for the models}
+    \scalebox{0.85}{
+    \begin{tabular}{l l}
+     \hline
+    Model & Free Parameters \\
+    \hline
+
+Optimal Bayesian Model & ${\beta}$\\
+Optimal Bayesian Model with free initial LR &${\alpha}, {\beta} $\\
+All-categories Observational Model & ${\alpha} ,  {\beta}$ \\
+Observation-based Model & ${\alpha} , {\beta}$ \\
+All-categories Observational Model with no Beta & ${\alpha}$  \\
+All-Categories Feedback Model & ${\alpha},  {\beta}$ \\
+Feedback-based Model & ${\alpha} ,{\beta}$ \\
+Feedback-based Model with free Q & ${\alpha}, {\beta}$ \\
+Feedback-based Model r1, -1 & ${\alpha},  {\beta}$ \\
+All-categories Observational Model with Stickiness & ${\alpha},   {\beta} , {\omega}$\\
+Optimal Bayesian Model with Stickiness & ${\alpha},   {\beta} , {\omega}$\\
+All-categories Feedback Model with Stickiness & ${\alpha},   {\beta} , {\omega}$\\
+Feedback and Observation Model & ${\alpha},   {\beta} $\\
+All-categories Feedback Model with dual LR & ${\alpha^+},  {\alpha^-} {\beta} , {\omega}$\\
+
+
+     \hline
+    \end{tabular}
+    }
+    \label{tab:priors}
+    \end{table}
+    %\end{center}
+
+\begin{table} 
+    \caption{Priors for the parameters}
+    \scalebox{0.85}{
+    \begin{tabular}{l l}
+     \hline
+    Parameter & Priors \\
+    \hline
+    
+ ${\alpha}$ & $\sim U(0,1)$ \\
+  ${\beta}$ & $\sim exp(1)$ \\
+  ${Q}$ & $\sim U(0,1)$ \\
+  ${\omega}$ & $\sim exp(-3,3)$ \\
+  
+    
+     \hline
+    \end{tabular}
+}
+    \label{tab:priors2}
+    \end{table}
+
+
+\section{Model Recovery}
+Besides parameter recovery, another procedure to evaluate the reliability of the model is model recovery \citep{Wilson2019a}. The aim of model recovery is to determine that a model, among several ones, can successfully be indicated to be the one to have generated the data. In order to do this, several data were simulated from all models and then fitted with all models. The method used to assess the fit of the models was Bayesian Information Criterion, \textit{BIC}, which incorporates a penalty for the number of parameters. 
+
+\begin{equation}
+BIC = {-2}log \hat{LL} + k_m log{(T)},
+\end{equation}
+
+\noindent
+where $\hat{LL}$ is the log-likelihood value when the model is fitted with the best fitting parameter, and $K_m$ is the number of parameters in the model \textit{m}. Lower values of \textit{BIC} mean better fit. 
+% To capture the influence of the learned category probabilities on memory consolidation, we need a model that accurately establishes contextual priors during the learning phase. As shown in Section \ref{dmn} and \ref{delta} in the Appendix (Section \ref{apppendix}), k. In Figure \ref{fig:phase_1_strong}, we provide an example of the delta rule model for categories with $\boldsymbol{\theta}=(0.8,0.1,0.1)$ and \hl{$N=24$} trials. The first row of plots shows the sampled categories across the trials. The second row of plots shows the corresponding prediction errors. For instance, at the first trial the model did expect each category with probability $\boldsymbol{\hat{\theta}}=(0,0,0)$ and observed category 1. In response to this, the model computed a prediction error $\delta_{1,1}=1$ and for the other categories $\delta_{1,2}=0$ and $\delta_{1,3}=0$. Finally, the last row of plots shows the evolution of the expected values that are updated in response to the prediction error. Figure \ref{fig:phase_1_flat} shows an example of the flat prior condition ($\boldsymbol{\theta}=0.33,0.33,0.33$). Obviously, the frequency with whichttps://www.overleaf.com/project/6040f176de7d0939c7e879efh the categories are presented is more similar compared to the strong prior condition, which is reflected in the model's learned expected value that converges to $\hat{\theta}_{n,j(c_n)} = 0.33$ for all categories.
+
+\section{Parameter Estimation and Model Comparison}
+The models where finally fit to the actual data in order to estimate the parameters. A \textit{LL} and \textit{BIC} value was computed for each model for each participant. 
+First, as the examination of the parameter recovery plots showed that recovery of the inverse temperature parameters was more difficult after the value of 10, and thus the models were fit with upper boundary of 30 for the $\beta$.
+To compare the fit of the models, we counted for how many participants each model was the model of best fit, i.e. with the lowest \textit{BIC} and the highest \textit{LL}, respectively. The results of the comparison are shown in figure \ref{fig:modelcomparison}. According to \textit{BIC}, the all-categories observational model was the best fit for 12 participants, over 32. Instead, according to \textit{LL}, the all-categories observational model with the dual learning rate was the best fit for 11 people over 32. 
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics{figures/model_comp_BIC.png}}\vfill
+{\includegraphics{figures/model_comp_LL}}
+\caption{\textbf{Model Comparison.} Comparison using \textit{BIC} on the top and \textit{LL} on the bottom.}
+\label{fig:modelcomparison}
+\end{figure}
+
+\section{Model Validation}
+In order to validate the winning models, they were used to simulate data, using the same parameters that were estimated from participants' data. Then cumulative accuracy was calculated for simulated data and compared to participants' actual cumulative accuracy, for strong prior conditions, to check whether the model fully captured behaviour. Results are shown in figure \ref{fig:actualvssim}. 
+
+
+\begin{figure}[ht!]
+{\includegraphics[width=0.5\textwidth]{figures/SimulatedVsActual.feedbALL.png}}\hfill
+{\includegraphics[width=0.5\textwidth]{figures/SimulatedVsActual.feedbALLdualLR.png}}
+\caption{\textbf{Simulated vs Actual Data.} The plots show the comparison between cumulative accuracy for the simulated vs the actual data, for the all-categories observational model (on the left) and the model with the dual learning rate (on the right). Shaded area represents 95 \% confidence interval.}
+\label{fig:actualvssim}
+\end{figure}
+
+\section{Prediction Error and Memory}
+The trial-by-trial estimates of expected values, choice probabilities, and prediction errors were then extracted from the best-fitting model. Two kinds of prediction error were considered: Choice-based and observation-based. The choice-based prediction error is the prediction error for the object category that is selected by participants at each trial. For correct choices the prediction error is always positive, as it represent the difference between 1 (correct response) and an estimated value for the category that can be between 0 and 1. For incorrect choices, the prediction error can vary between 0, representing an incorrect choice when the estimated value for a category (prior belief) is 0 , and -1, an incorrect choice when the estimated value is at 1. Therefore, it is a "signed" prediction error, ranging from -1 to 1. This kind of prediction error was used to update the estimated values in the all-categories feedback-based model.  Contrarily, the observation-based prediction error is based on the prediction error of the object-category displayed at the end of each trial. As this prediction error assigns a value of 1 to the object category that is presented on each trial, its values are always positive. Therefore, it is an "unsigned" prediction error. The so-obtained model-derived prediction errors were used to predict performance on the recognition test. The distribution of prediction error by condition is displayed in figure \ref{fig:PEbyPElevel}. We built a generalised linear mixed-effects model with episodic memory (binary) as dependent variable, and trial-based prediction error as predictors. In addition, random intercepts for subjects, and random slopes for prediction error were added. 
+The relationships between PE and memory is presented in figure \ref{fig:PEbymem}.
+For the choice-based prediction error, there was a significant positive relationship between prediction error and recognition memory in the immediate test, so that the more positive the prediction error, the better the memory. For the observational prediction error, there was a quadratic effect of prediction error on memory in the immediate test,so that performance was better when prediction error was at the middle level, compared to higher and lower ends. 
+As the unsigned, choice-based prediction error can be considered as the signed, observational-prediction error with the addition of prediction outcome, we analysed the combined effect of these two variables on memory. Figure \ref{fig:PEbymemByACC}.
+These results show that prediction error at encoding influenced subsequent memory as a function of the outcome of participants’ predictions (correct vs incorrect). Precisely, when participants correctly predicted the object category, stronger prediction error (weaker prior) led to enhanced memory. In contrast, when participants incorrectly predicted the object category, stronger prediction error (stronger prior) led to impaired memory. 
+
+\begin{figure}[ht!]
+{\includegraphics[width=0.5\textwidth]{figures/PEchoiceFeedbAll.Pilot.png}}\hfill
+{\includegraphics[width=0.5\textwidth]{figures/PEobsFeedbAll.Pilot.png}}
+\caption{\textbf{Distribution of prediction error by condition.} Distribution of the choice-based (left) and observation-based (right) prediction error as a function of the prediction error condition.}
+\label{fig:PEbyPElevel}
+\end{figure}
+
+%\begin{figure}[ht!]
+%{\includegraphics[width=0.5\textwidth]{figures/ObsAllPEfeedb_part.png}}\hfill
+%%{\includegraphics[width=0.5\textwidth]{figures/DualLRPEfeedb_part.png}}\vfill
+%{\includegraphics[width=0.5\textwidth]{figures/ObsAllPEObs_part.png}}\hfill
+%{\includegraphics[width=0.5\textwidth]{figures/DualLRPEObs_part.png}}
+%\caption{\textbf{Distribution of prediction error by participant.} Distribution of the %feedback-based (top) and observation-based (bottom) prediction error as a function of %participant. On the left the prediction error derived from the all-categories observational %model, on the right the prediction error derived from the dual learning rate model.}
+%\label{fig:PEbypart}
+%\end{figure}
+
+\begin{figure}[ht!]
+{\includegraphics[width=0.5\textwidth]{figures/PEchoiceByMemImm.png}}\hfill
+{\includegraphics[width=0.5\textwidth]{figures/PEobsByMemImm.png}}
+
+\caption{\textbf{Prediction error and memory.} Predicting recognition accuracy as a function of prediction error. Choice-based prediction error on the left, observation-based on the right.}
+\label{fig:PEbymem}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics{figures/PEobsByAccFeedbAll.png}}
+
+
+
+\caption{\textbf{Prediction error, Prediction Accuracy, and Memory.} Predicting recognition accuracy as a function of prediction error and prediction accuracy. The plots show the relationship between prediction error and memory as a function of prediction accuracy on the statistical learning task.}
+\label{fig:PEbymemByACC}
+\end{figure}
+
+
+
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=0.8]{figures/phase_1_strong.pdf}}
+\caption{\textbf{Learning phase strong prior condition.} The first row shows the sampled categories. The second row shows prediction errors. The third row shows the expected values of the category probabilities.}
+\label{fig:phase_1_strong}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=0.8]{figures/phase_1_flat.pdf}}
+\caption{\textbf{Learning phase flat prior condition.} The first row shows the sampled categories. The second row shows prediction errors. The third row shows the expected values of the category probabilities.}
+\label{fig:phase_1_flat}
+\end{figure}
+
+
+\subsection{Prediction phase}
+\hl{Question: With which probabilities are the items presented? Will only new objects be presented?}
+We next make an attempt to link the learning model to memory in the prediction phase. We will start with a descriptive approach that links prediction error magnitudes to a probability to remember an item.
+%We then discuss how a mechanistic model that integrates learning and memory could look like. 
+%\subsubsection{Descriptive approach}
+%A descriptive approach refers to an analysis that is agnostic about the exact assumed mechanisms of a computational model. 
+The advantage of this strategy is that it can easily be tested and also combined with additional influences on memory (e.g., prediction confirmation that results from small prediction errors). In particular, we use a logistic function that models the probability to remember an item dependent on the size of the absolute prediction error
+\begin{equation}
+p(m_i|\delta_{n,j}) :=\dfrac{1}{1+ q\exp(-\beta| \delta_{n,j}|)}.
+\label{eq:softmax1}
+\end{equation}
+
+\noindent
+Here, the $\beta$ parameter indicates the slope of the function (currently fixed to $\beta = 2.5$) and $q$ determines the function's midpoint on the x-axis (currently $q = 3$). The strong prior condition in the prediction phase is shown in Figure \ref{fig:phase_2_strong}. The categories are presented with the same probabilities [only new items?]. However, in contrast to the first task phase, the model starts with prior assumptions about the category probabilities that are based on the previous expected values. As a consequence of this, the model keeps relatively stable expected values and, when items of the most frequently presented category are presented, prediction errors are near zero. In contrast, as items from the other two categories are less expected, they are associated with higher prediction errors. Next, according to our memory model, the smaller prediction errors are associated with lower probabilities to remember an item. As shown in the last row of subplots in Figure \ref{fig:phase_2_strong}, the model therefore predicts a lower consolidation probability for items from the frequently presented category. In the flat prior condition (Figure \ref{fig:phase_2_flat}), all categories are associated with the same presentation probabilities. As a consequence, the model predicts similar consolidation probabilities, which are notably higher than in the frequently presented category in the strong prior condition. 
+
+\subsection{Memory phase}
+Finally, in Figure \ref{fig:pe_memory}, we plot an illustration of the memory model function given the fixed $\beta$ and $q$ parameters.  Please note that the exact probabilities depend on the parameters of the logistic function. These parameters are currently fixed to arbitrary values. As soon as we have pilot data, we can estimate the participants' parameters using a logistic regression in which we predict consolidated items as a function of prediction errors in the prediction phase (and potentially additional factors).
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=0.8]{figures/phase_2_strong.pdf}}
+\caption{\textbf{Prediction phase strong prior condition.} The first row shows the sampled categories. The second row shows prediction errors. The third row shows the expected values of the category probabilities. The fourth row shows the predicted consolidation probabilities.}
+\label{fig:phase_2_strong}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=0.8]{figures/phase_2_flat.pdf}}
+\caption{\textbf{Prediction phase flat prior condition.} The first row shows the sampled categories. The second row shows prediction errors. The third row shows the expected values of the category probabilities. The fourth row shows the predicted consolidation probabilities.}
+\label{fig:phase_2_flat}
+\end{figure}
+
+
+
+\begin{figure}[ht!]
+\centerline{\includegraphics[scale=.6]{figures/PE_memory.pdf}}
+\caption{\textbf{Example of the logistic function.} The function is plotted across absolute prediction errors in range [0, 1] and given $\beta=1$ and $q=3$.}
+\label{fig:pe_memory}
+\end{figure}
+
+%\subsubsection{Mechanistic approach}
+%To get a better understanding of why the brain should consider prediction errors for memory consolidation (or why it shouldn't), we can develop a second model that is based on our assumptions about the link between prediction errors and memory. One way to think about this is the assumption that the brain aims at accurately predicting events in the environment \citep{Henson2010, Gershman2017b}. Starting from this perspective, one could ask the question why the brain doesn't memorize every piece of information. This of course seems not very intuitive, but requires additional assumptions in a model. We could additionally assume that the formation of a new memory is costly (e.g., requires resources) and that the brain then tries to find the sweet-spot between the ability to predict events and the costs of memory formation. Before we implement such an idea, we should discuss what we assume exactly and also check relevant work that could inform such a model. But in general, we need a gain function that indicates what the brain gains from accurately remembering an event and what is has to pay for that memory. This could for example look like 
+%
+%\begin{equation}
+%\pi = \begin{cases} + 1, \mathrm{if \ correctly \  predicted} \\
+%-1 , \mathrm{if \ formation \ of \ new \ memory.} 
+% \end{cases}
+%\end{equation}
+%
+%Thus, the brain would try to correctly remember items to predict them in the future but would also try to prioritize memories about items that are particularly relevant in order to minimize the cost of memory consolidation. This form of ''rational'' analysis thus offers the opportunity to study the computational principle of memory formation but builds on strong assumptions that have to be informed by the literature. 
+
+
+\section{Discussion}
+The intermediate goal of the PIVOTAL modeling subproject is to study the influence of prediction errors on memory consolidation. We have started to embed the project into the current literature. This revealed that in the domain of reinforcement learning, prior work has tried to link reward prediction errors to memory but so far found inconsistent results. We are more concerned with stimulus-stimulus associations and it seems like the literature on that topic is currently fairly sparse and mainly based on the PIMMS framework.
+
+To develop an agent-based computational model that provides a more formal understanding of this relationship, we have shown that we can use a delta-rule learning model to infer the category probabilities on the basis of prediction errors and a time-dependent learning rate. As described in the Appendix, this model is equivalent to the Bayes-normative solution of the Dirichlet-multinomial model. This approach thus allows us to use the well-established delta rule learning model \citep{Daw2013, Niv2008, Rangel2008a, Rushworth2008} while considering the effects of priors and likelihoods on learning and memory \citep{Henson2010}. %So far, we use a descriptive model that can be used to infer to which degree memory consolidation is driven by prediction errors. 
+%In the future, we will try to develop a formal account of the computational mechanisms that link learning and memory in our experiment to better understand why the brain may consider prediction errors for consolidation.
+
+\section{Appendix}\label{apppendix}
+
+\subsection*{Formal description of the task}
+As a basis for the implementation of our ideas into a paradigm and the development of an agent-based computational model, we now formalize the task. We have the following variables:
+
+\begin{itemize}
+\item Let $C \in \{1,2\}$ denote the set of contexts, where $c=1$ refers to the strong prior and $c=2$ to the flat prior context,
+\item let $N \in \mathbb{N}$ denote the number of trials, which are indexed by $n=1,2,...,N$,
+\item $K \in \mathbb{N}$ refers to the number of categories, indexed by $j=1,2,...,K$,
+\item suppose $x \in \{0,1\}$ denotes the outcomes in the task, i.e., if a category has been presented or not,
+\end{itemize}
+then $x$ has the following probability mass function (PMF)
+
+\begin{equation}
+\mathrm{Cat}(x|\boldsymbol{\theta}) = \prod^K_{j=1}\theta_j^{\bold{I}(x_j=1)}
+\end{equation}
+where $\theta_j$ denotes the probability that category $j$ is presented, i.e., $p(x=j|\boldsymbol{\theta})$.
+
+
+\subsubsection*{Learning phase}
+In the learning phase consisting of $N$ trials, participants will sequentially observe objects. We will use $K$ categories that are presented according to the probability indicated by the $\boldsymbol{\theta}$ parameters. In the strong prior context, one category will have a high probability of being presented, e.g., $\boldsymbol{\theta}^{c=1} = (0.8, 0.1, 0.1)$ and  in the flat prior context, all probabilities will be equal, e.g., $\boldsymbol{\theta}^{c=2} = (0.33, 0.33,0.33)$. For an example of the PMF's of the three contexts see Figure $\ref{fig:pmf}$.
+
+\subsubsection*{Prediction phase}
+The prediction phase will consist of $N=1$ trials. Here, we will present categories that have been shown in the learning phase and novel categories that have not been experienced before. As in the learning phase, the categories will be presented according to probability $\boldsymbol{\theta}$, which thus makes sure that the learned priors are indeed relevant for the prediction phase. I think it is important that the priors are predictive for the prediction phase, because otherwise participants may learn that the priors are irrelevant and consequently experience substantially different prediction errors than our model assumes. This will thus require careful experimental control of the task outcomes.
+
+\subsubsection*{Memory phase}
+The memory phase will be applied after a certain delay period. Here we will present participants $K$ categories during $N$ trials. During each trial, participants indicate if an object is novel or has been presented before.
+
+\subsection{Agent-based computational model}\label{dmn}
+We now develop an inference model for the learning and prediction phase of the task. We will first provide the normative Bayesian solution using the Dirichlet-multinomial model and then show that in our case, this is equivalent to the maximum likelihood (ML) estimate of the category probabilities. Based on this insight, we will reformulate the ML solution in order to obtain a sequential prediction error correcting scheme that provides trial-by-trial prediction errors. Please note that we have not yet added a decision making policy such as the softmax function.
+
+\subsection*{Dirichlet-multinomial model}
+We will start with an application of the Dirichlet-multinomial model to all $N$ trials of the learning phase. We apply the Multinomial distribution because the Categorical distribution that we use in our task is a special case of the Multinomial distribution that consists of only one random sample during each trial (see ''Multinomial distribution'' in the Appendix). The Dirichlet distribution is the conjugate distribution of the Multinomial distribution and can therefore be utilized as a prior. 
+
+\paragraph{Likelihood}
+After the observation of $N$ pictures during the learning phase, the likelihood of the data $\boldsymbol{\mathcal{D}}=\{x_1,...x_N\}$, where $x_i \in \{1,...,K\},$ can be denoted as
+
+\begin{equation}
+p(\boldsymbol{\mathcal{D}}|\boldsymbol{\theta})= \prod^K_{k=1}\theta^{N_k}_k 
+\end{equation}
+
+where $N_k = \sum_{i=1}^{N}\mathbb{I}(y_i=k)$. Intuitively, $\boldsymbol{\mathcal{D}}$ denotes the observed data with each $x_i$ indicating how often each category was shown during the learning phase. Please note the similarity to the Categorical distribution that was introduced in ''Formal description of the task''. The major difference is that we now consider all trials of the learning phase.
+
+\paragraph{Prior}
+The prior is the Dirichlet distribution
+\begin{equation}
+\begin{aligned}
+p(\boldsymbol{\theta}) & = \mathrm{Dir}(\boldsymbol{\theta}|\boldsymbol{\alpha})\\
+&\triangleq \dfrac{1}{B(\boldsymbol{\alpha})} \prod^K_{k=1}\theta_k^{\alpha_{k-1}}\mathbb{I}(\mathrm{x}\in S_K).	
+\end{aligned}
+\end{equation}
+In our case, the Dirichlet distribution is used to model our prior expectations (i.e., at the beginning of the learning phase) about the category probabilities, which is often referred to as pseudo-counts. The parameter that reflects our prior is denoted by $\boldsymbol{\alpha}$. I think it is fair to assume that participants start the task with a flat prior that reflects that all categories are equally likely, which corresponds to $\boldsymbol{\alpha} = (1,1,...,1)$. These values thus indicate the assumption that each category has been pseudo-counted once. For a few more details about the Dirichlet distribution see ''Dirichlet distribution'' in the Appendix and \cite{Murphy2012}.
+
+\paragraph{Posterior}
+The posterior is a Dirichlet distribution that results from multiplying the likelihood by the prior
+
+\begin{equation}
+\begin{aligned}
+p(\boldsymbol{\theta}|\boldsymbol{\mathcal{D}})
+&\propto p(\boldsymbol{\mathcal{D}}|\boldsymbol{\theta})p(\boldsymbol{\theta})\\
+&\propto \prod^K_{k=1} \theta^{N_k}_k \theta_k^{a_{k}-1} \\
+&= \prod^K_{k=1} \theta^{\alpha_k+N_{k}-1}_k \\ 
+&= \mathrm{Dir}(\boldsymbol{\theta}|\alpha_1 + N_1,...,\alpha_K + N_K).
+\end{aligned}
+\end{equation}
+The only operation that is required here is thus the addition of the observed data to the prior. This affords a simple application of the model without the need for complex computations.
+
+\paragraph{Maximum a posteriori and maximum likelihood estimate}
+In order to obtain an estimate of the category probabilities, we can compute the expected value of the posterior to obtain the maximum a posteriori (MAP) estimate:
+\begin{equation}
+\hat{\theta}_k = \dfrac{N_k+\alpha_k-1}{N+\alpha_0-K}.
+\end{equation}
+Under the assumption that $\boldsymbol{\alpha} = (1,1,...,1)$, the MAP estimate is equal to the maximum likelihood (ML) estimate that is based on the empirically observed frequency of the categories:
+\begin{equation}
+\hat{\theta}_k = \dfrac{N_k}{N}.
+\label{eq:dmm}
+\end{equation}
+We already noted that in this simple version of the task, we are only required to count our observed categories. Now we additionally know that the category probabilities can simply be obtained by computing the empirical fraction of the number of times each category was presented. This affords a straightforward reformulation of our Dirichlet-multinomial model into an iterative prediction error correcting scheme.
+
+
+\subsection{Delta-rule formulation}\label{delta}
+
+We now show how eq. \ref{eq:dmm} can be translated into the delta rule. Let $\hat{\theta}_{n,j}$ denote the estimate of the $j$th category probability at trial $n$, then the estimate of the $j$th category at trial $n+1$, denoted by $\hat{\theta}_{n+1,j}$, can be computed according to 
+
+
+\begin{equation}
+\begin{aligned}
+\hat{\theta}_{n+1,j} &= \dfrac{n_{j}}{n} \\ 
+&= \dfrac{1}{n}n_{j} \\ 
+&= \dfrac{1}{n}\sum_{i=1}^{n}x_{i,j} \\
+&= \dfrac{1}{n}\Big(x_{n,j} + \sum_{i=1}^{n-1}x_{i,j}  \Big) \\
+&= \dfrac{1}{n}\Big(x_{n,j} + (n-1)\hat{\theta}_{n,k} \Big) \\
+&= \dfrac{1}{n}\big(x_{n,j}+n\hat{\theta}_{n,j}-\hat{\theta}_{n,j}\big) \\
+&= \hat{\theta}_{n,j} + \dfrac{1}{n}(x_{n,j} - \hat{\theta}_{n,j}),
+\end{aligned}
+\label{eq:model}
+\end{equation}
+where $(x_{n,j}-\hat{\theta}_{n,j}) =: \delta_{n,k}$ corresponds to the prediction error and the learning rate is defined as $\dfrac{1}{n}=:\alpha_{n,j}$ \citep{Sutton1998}.
+
+\subsection*{Dirichlet distribution}
+
+\paragraph*{Probability simplex}
+
+\begin{equation}
+S_K = \{\mathbf{x} : 0\le x_k \le 1, \sum^K_{k=1}x_k=1\}
+\end{equation}
+
+\paragraph*{Probability density function}
+
+\begin{equation}
+\mathrm{Dir}(\boldsymbol{\mathrm{x}}|\boldsymbol{\alpha}) \triangleq \dfrac{1}{B(\mathbf{\boldsymbol\alpha})} \prod^K_{k=1}x_k^{\alpha_{k-1}}\mathbb{I}(\boldsymbol{\mathrm{x}}\in S_K)	
+\end{equation}
+
+where
+
+\begin{equation}
+B(\boldsymbol{\alpha}) \triangleq \dfrac{\prod_{k=1}^K \Gamma(\alpha_k)}{\Gamma(\alpha_0)} 	
+\end{equation}
+
+and where
+
+
+\begin{equation}
+\alpha_0 \triangleq \sum_{k=1}^K\alpha_k.
+\end{equation}
+
+
+\subsection*{Multinomial distribution}
+
+Let $\boldsymbol{\mathrm{x}}=(x_1...x_K)$ be a random vector, where $x_j$ denotes the number of times picture $j$ in the current context occurs.
+
+\paragraph*{Probability mass function}
+
+\begin{equation}
+\mathrm{Mu}(\boldsymbol{\mathrm{x}}|n,\boldsymbol{\theta}) \triangleq \binom{n}{x_1...x_k} \prod^{K}_{j=1}\theta_j^{x_j}
+\end{equation}
+where
+
+\begin{equation}
+ \binom{n}{x_1...x_k}\triangleq\dfrac{n!}{x_1!x_2!...x_3!}.
+\end{equation}
+In case of $n=1$:
+
+\begin{equation}
+\mathrm{Mu}(\boldsymbol{\mathrm{x}}|1,\boldsymbol{\theta})= \mathrm{Cat}(x|\boldsymbol{\theta})\triangleq \prod^K_{j=1}\theta^{\bold{I}(x_j=1)}
+\end{equation}
+
+
+
+
+
+
+\bibliographystyle{apalike}
+\bibliography{library} 
+
+
+\subsection{Supplementary material}
+\subsubsection{Parameter Recovery Plots}
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryOptimalBayesian.Beta.30.initialQ=0.33.jpg}}\vfill
+\caption{\textbf{Parameter recovery Optimal Bayesian Model.} ${\beta}$ parameter.}
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryOptimalBayesianFreeAlpha.Alpha.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryOptimalBayesianFreeAlpha.Beta.30.initialQ=0.33.jpg}}
+\caption{\textbf{Parameter Recovery Optimal Bayesian Model with Free Initial Learning Rate.} } 
+\end{figure}
+
+
+\begin{figure}[ht!]
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryObsALL.Alpha.30.initialQ=1.jpg}}\hfill
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryObsALL.Beta.30.initialQ=1.jpg}}\vfill
+\caption{\textbf{Parameter Recovery All-Categories Observational Model.} }
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryObs.Alpha.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryObs.Beta.30.initialQ=0.33.jpg}}
+\caption{\textbf{Parameter Recovery Observation-Based Model}}
+\end{figure}
+
+\begin{figure}[ht!]
+\centerline
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryObsALLnobeta.Alpha..initialQ=0.33.jpg}}\vfill
+\caption{\textbf{Parameter Recovery All-Categories Observational Model with no Beta Parameter} }
+\end{figure}
+
+\begin{figure}[ht!]
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryfeedbALL.Alpha.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryfeedbALL.Beta.30.initialQ=0.33.jpg}}\vfill
+\caption{\textbf{Parameter Recovery All-Categories Feedback-Based Model.} }
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryFeedb.Alpha.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryFeedb.Beta.30.initialQ=0.33.jpg}}
+\caption{\textbf{Parameter Recovery Feedback-based Model.} ${\alpha}$ parameter is on the left, while the ${\beta}$ parameter is on the right}
+\end{figure}
+
+
+
+
+\begin{figure}[ht!]
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryFeedbAndQ.Alpha.30.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryFeedbAndQ.Beta.30.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryFeedbAndQ.Q.30.initialQ=.jpg}}\vfill
+\caption{\textbf{Parameter recovery Feedback Model with Initial Q as a Free Parameter.} }
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryFeedbmin1.Alpha.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryFeedbmin1.Beta.30.initialQ=0.33.jpg}}\vfill
+\caption{\textbf{Parameter Recovery Feedback-based Model with r=1,-1.} }
+\end{figure}
+
+\begin{figure}[ht!]
+
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryobsALLstick.Alpha.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryobsALLstick.Beta.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryobsALLstick.Omega.30.initialQ=0.33.jpg}}\vfill
+
+\caption{\textbf{All-categories Observational Model with stickiness parameter.} ${\alpha}$ }
+
+
+\end{figure}
+
+\begin{figure}[ht!]
+
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryOptimalBayesianStick.Beta.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.50\textwidth]{figures/parameterRecoveryOptimalBayesianStick.Omega.30.initialQ=0.33.jpg}}\vfill
+\caption{\textbf{Optimal Bayesian model with Stickiness Parameter.} }
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryfeedbALLstick.Alpha.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryfeedbALLstick.Beta.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryfeedbALLstick.Omega.30.initialQ=0.33.jpg}}
+\caption{\textbf{All-Categories Feedback Model with Stickiness Parameter.} }
+\end{figure}
+
+\begin{figure}[ht!]
+
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryfeedbAndObs.Alpha.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryfeedbAndObs.Beta.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryfeedbAndObs.Omega.30.initialQ=0.33.jpg}}\vfill
+\caption{\textbf{Feedback and Observation Model} }
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryFeedbAlldualLR.AlphaPos.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryFeedbAlldualLR.AlphaNeg.30.initialQ=0.33.jpg}}\hfill
+{\includegraphics[width=.33\textwidth]{figures/parameterRecoveryFeedbAlldualLR.Beta.30.initialQ=0.33.jpg}}
+\caption{\textbf{All-Categories Feedback Model with Dual Learning Rate.} }
+\end{figure}
+
+\end{document}

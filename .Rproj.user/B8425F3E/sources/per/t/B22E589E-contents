@@ -1,0 +1,191 @@
+---
+title: "01.analysis_RL.Rmd"
+author: "Francesco Pupillo"
+output: 
+html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+
+abs<-"/home/francesco/PowerFolders/Frankfurt_University/PREMCE/Pilots/Premce-rev2/testing/gitLab/premce/Premce-rev2/Data+Analysis/"
+
+recogData<-read.csv(paste(abs, "output_files/recognitionData.csv", sep=""))
+
+```
+This document contains the analyses of the model-derived variables for PREMCE-
+Cat2
+
+
+# Winning models
+The winning models are different, depending on whether we use BIC or LL to 
+select them. For BIC, the winning model is the observational one; for the LL, it
+is the bayesian. We are going to analyse both of them
+
+## Observational model
+```{R}
+RLdata<-read.csv(paste(abs, "output_files/RLdata_obsALL.csv", sep=""))
+
+# in RL data, cut all the trial before the 16th
+RLdata<-RLdata[RLdata$trialNum>14,]
+
+RLdata$recogAcc<-recogData$recogAcc
+
+# plot the estimated probabilities for each murk
+
+ggplot(RLdata[RLdata$SubNum==2,], aes(x=trialNum))+
+  
+  geom_line(aes(y=P1), size = 1.5, color = "blue")+
+  geom_line(aes(y=P2),size = 1.5, color = "darkgreen")+
+  geom_line(aes(y=P3),size = 1.5, color = "brown")+
+  geom_line(aes(y=P4), size = 1.5,color = "orange")+
+  # geom_line(aes(y=Delta), color = "red")+
+  
+  
+  geom_vline(xintercept = c(18, 55,90, 126))+
+  #facet_grid(butterfly~SubNum)+
+  facet_wrap(character~., ncol = 3)
+
+
+# Participants that we want to exclude
+partExcl<-c(9)
+RLdata<-RLdata[!RLdata$SubNum %in% partExcl, ]
+
+# now prediction error
+RLdata$PEobs<-NA
+  for (o in 1: nrow(RLdata)){
+    if (RLdata$corrCat[o]==1){
+      RLdata$PEobs[o]<-RLdata$Delta1[o]
+    }else if(RLdata$corrCat[o]==2){
+      RLdata$PEobs[o]<-RLdata$Delta2[o]
+    }else if(RLdata$corrCat[o]==3){
+      RLdata$PEobs[o]<-RLdata$Delta3[o]
+    }else if(RLdata$corrCat[o]==4){
+      RLdata$PEobs[o]<-RLdata$Delta4[o]
+    }
+  }
+
+
+ggplot(RLdata[RLdata$SubNum==2,], aes(x=trialNum))+
+   geom_line(aes(y=PEobs),size = 1.5, color = "darkred")+
+  
+  
+  geom_vline(xintercept = c(16, 50,86, 122))+
+  #facet_grid(butterfly~SubNum)+
+  facet_wrap(character~., ncol = 3)
+
+
+# distribution of PE by condition
+RLdata$befAft<-as.factor(RLdata$befAft)
+PEobsdistr<-ggplot(RLdata, aes(x= PEobs, fill=befAft))
+print(
+  PEobsdistr+geom_histogram()+ facet_grid( ~ befAft)+ggtitle("PE observational")
+)
+
+# check whether it affects memory
+ggplot(RLdata, aes(PEobs, recogAcc))+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), se=F, alpha = 0.1)+aes(colour = factor(SubNum))+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+  #facet_grid(.~accuracy)+
+  theme(strip.text.x = element_text(size = 13))
+
+
+# is that significant?
+
+modPEobs<-glmer(recogAcc~(PEobs+accuracy)+(1+PEobs+accuracy|SubNum), family=binomial(),
+             data=RLdata)
+
+summary(modPEobs)
+
+
+# uncertainty  as the variance of the probabilities
+ggplot(RLdata, aes(x=trialNum, y = uncertainty))+stat_summary(fun.y="mean",geom="line")
+  
+Uncdistr<-ggplot(RLdata, aes(y= uncertainty, x = befAft, fill=befAft))
+print(
+  Uncdistr+geom_boxplot()#+ facet_grid( ~ befAft)+ggtitle("Uncertainty observational")
+)
+
+# plot with recognition
+ggplot(RLdata, aes(uncertainty, recogAcc))+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), se=F, alpha = 0.1)+aes(colour = factor(SubNum))+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+  #facet_grid(.~accuracy)+
+  theme(strip.text.x = element_text(size = 13))
+
+# PE by uncertainty
+modPEobsByUnc<-glmer(recogAcc~(PEobs*uncertainty)+(1+PEobs*uncertainty|SubNum), family=binomial(),
+             data=RLdata,control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)) )
+
+summary(modPEobsByUnc)
+
+Anova(modPEobsByUnc)
+```
+
+## Bayesian Model
+```{r}
+RLdata<-read.csv(paste(abs, "output_files/RLdata_bayesian.csv", sep=""))
+
+# in RL data, cut all the trial before the 16th
+RLdata<-RLdata[RLdata$trialNum>14,]
+
+RLdata$recogAcc<-recogData$recogAcc
+
+# plot the estimated probabilities for each murk
+
+ggplot(RLdata[RLdata$SubNum==2,], aes(x=trialNum))+
+  
+  geom_line(aes(y=Q1), size = 1.5, color = "blue")+
+  geom_line(aes(y=Q2),size = 1.5, color = "darkgreen")+
+  geom_line(aes(y=Q3),size = 1.5, color = "brown")+
+  geom_line(aes(y=Q4), size = 1.5,color = "orange")+
+  # geom_line(aes(y=Delta), color = "red")+
+  
+  
+  geom_vline(xintercept = c(18, 55,90, 126))+
+  #facet_grid(butterfly~SubNum)+
+  facet_wrap(character~., ncol = 3)
+
+
+# learning rate
+ggplot(RLdata[RLdata$SubNum==2,], aes(x=trialNum))+
+  geom_line(aes(y=lr),size = 1.5, color = "darkred")+
+  geom_vline(xintercept = c(16, 52,88, 124))
+
+RLdata$befAft<-as.factor(RLdata$befAft)
+RLdata$iCP<-as.factor(RLdata$iCP)
+
+# distribution of lr by condition
+lrdistr<-ggplot(RLdata, aes(x= lr, fill=befAft))
+lrdistr+geom_histogram()+ facet_grid( ~ befAft)
+
+lrdistr<-ggplot(RLdata, aes(y= lr, x=iCP, fill=iCP))
+
+lrdistr+geom_boxplot()
+
+# change pointpp
+ggplot(RLdata[RLdata$SubNum==2,], aes(x=trialNum))+
+  geom_line(aes(y=CPP),size = 1.5, color = "darkorange")+
+  geom_vline(xintercept = c(16, 52,88, 124))
+
+# uncertainty  as the variance of the probabilities
+ggplot(RLdata[RLdata$SubNum==2 & RLdata$character==1,], aes(x=trialNum))+
+  geom_line(aes(y=uncertainty), size = 1.5, color = "blue")+
+geom_vline(xintercept = c(16, 52,88, 124))
+
+# distribution of uncertainty
+Uncdistr<-ggplot(RLdata, aes(x= uncertainty, fill=befAft))
+Uncdistr+geom_histogram()+ facet_grid( ~ befAft)
+
+Uncdistr<-ggplot(RLdata, aes(y= uncertainty, x=befAft, fill=befAft))
+Uncdistr+geom_boxplot()
+
+
+
+# model learning rate
+
+
+```

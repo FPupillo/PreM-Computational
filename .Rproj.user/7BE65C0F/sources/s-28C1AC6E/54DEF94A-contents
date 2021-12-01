@@ -1,0 +1,11 @@
+#---------------------------------------------------------------------------------------------#
+# ---------------check if the effect of PE (for inaccuracte 
+#            is stronger for those with high accuracy in SL task (or higher LR)
+#---------------------------------------------------------------------------------------------#
+#
+
+#
+# last modified:"Mon Jul 12 12:55:12 2021"
+#---------------------------------------------------------------------------------------------#
+
+# first, we need to derive LR, cum acc, accuracy, and PE effect for everyone

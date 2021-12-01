@@ -1,0 +1,108 @@
+# model comparison: compare fit
+# this script compare the BIC of the different models for the different setups
+
+library(lme4)
+library(lmerTest)
+library(car)
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(ggjoy)
+
+rm(list=ls())
+
+# set current directory in the parent folder
+setwd(dirname(getwd()))
+
+cd<-getwd()
+
+setups<-c("pilot","priors", "flat", "three")
+
+for (s in setups){
+  print(s)
+# retrieve the different models
+setwd(paste("premup-", s,"/outputs/group_level", sep=""))
+
+# list the files with parameter estimation
+files<-list.files(pattern="ParameterEstimation.betalimit=10.*")
+
+# create dataset to store the bic
+BicAll<-vector()
+
+# loop through the files
+for (n in 1:length(files)){
+  
+  # read the first files
+  cfile<-read.csv(files[n])
+  
+  # assing the name of the model
+  modname<-substr(files[n], 45, nchar(files[n])-4 )
+  
+  # assing the identifier
+  cfile$model<-rep(modname, times=nrow(cfile))
+  
+  # assogm tp the dataframe
+  BicAll<-rbind(BicAll, cfile)
+  
+}
+
+setwd(cd)
+
+# subset
+BicAll<-BicAll[, c(1,6,7,8)]
+
+# Count for how many participants a precise model was the best fit
+# create two datasets = one for the LL and one for the BIC
+
+# try to convert to wide
+library(reshape2)
+BicAll_wideBIC <- dcast(BicAll, PartNum ~ model, value.var=c("BIC"))
+BicAll_wideLL <- dcast(BicAll, PartNum ~ model, value.var=c("LogLikel"))
+
+# find the best model for each participant according to BIC
+# (the model that minimize the BIC)
+BicAll_wideBIC$BestModel<-NA
+for (j in 1: nrow(BicAll_wideBIC)){
+  tryCatch({
+  index<-which(BicAll_wideBIC[j,]==min(BicAll_wideBIC[j,(2:length(files)+1)], na.rm=T))
+  BicAll_wideBIC$BestModel[j]<-names(BicAll_wideBIC[index])
+  }, error = function(e) { print(paste("problem with number", j))}) 
+}
+
+table(BicAll_wideBIC$BestModel)
+
+# create and save graph
+jpeg(paste("premup-", s,"/outputs/group_level/model_comparison_Bic.jpg", sep=""), width = 1600, height = 500)
+ggplot(BicAll_wideBIC, aes(BestModel))+geom_bar()
+dev.off()
+
+# now loglikelihood
+BicAll_wideLL$BestModel<-NA
+for (j in 1: nrow(BicAll_wideLL)){
+  tryCatch({
+  index<-which(BicAll_wideLL[j,]==max(BicAll_wideLL[j,2:length(files)+1], na.rm=T))
+  BicAll_wideLL$BestModel[j]<-names(BicAll_wideLL[index])
+  }, error = function(e) { print(paste("problem with number", j))}) 
+}
+
+jpeg(paste("premup-", s,"/outputs/group_level/model_comparison_LL.jpg", sep=""), width = 1600, height = 500)
+ggplot(BicAll_wideLL, aes(BestModel))+geom_bar()
+dev.off()
+
+# write the winning models
+winnmodBIC<-names(sort(table(BicAll_wideBIC$BestModel), decreasing=T)[1])
+winnmodLL<-names(sort(table(BicAll_wideLL$BestModel), decreasing=T)[1])
+
+# retrieve 
+winnmodfile<-read.csv("computational_model/winning_mods.csv")
+
+# convert to char
+for (n in names(winnmodfile)){
+  winnmodfile[[n]]<-as.character(winnmodfile[[n]])
+}
+
+winnmodfile[winnmodfile$setup==s,]<-c(s,winnmodBIC,winnmodLL)
+
+# save it
+write.csv(winnmodfile, "computational_model/winning_mods.csv", row.names = F)
+}

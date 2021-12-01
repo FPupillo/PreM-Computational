@@ -1,0 +1,482 @@
+---
+title: "Untitled"
+author: "Francesco Pupillo"
+date: "06/07/2021"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# model based stats
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+cd<-getwd()
+source("helper_functions/getPE.R")
+
+setwd("output_files")
+
+getwd()
+
+
+
+```
+### start with getting the pilot data
+
+```{r}
+# get the files
+abs<-abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
+
+pilotFeedb<-read.csv(paste(abs, "fittedData.pilot.Phase2.RescorlaWagner_feedbALL.csv", sep=""))
+
+pilotObs<-read.csv(paste(abs,"fittedData.pilot.Phase2.RescorlaWagner_obsALL.csv", sep=""))
+
+# exclude fillers
+pilotFeedb<-pilotFeedb[pilotFeedb$pred_Cond!=4,]
+
+pilotObs<-pilotObs[pilotObs$pred_Cond!=4,]
+
+# exclude participants with low performance in phase1
+exclPhase1<-c(7 ,16, 19, 20, 23)
+
+pilotFeedb.exc<-pilotFeedb[!pilotFeedb$SubNum %in% exclPhase1, ]
+
+pilotObs.exc<-pilotObs[!pilotObs$SubNum %in% exclPhase1, ]
+
+
+
+```
+
+
+### Now Three
+```{r}
+threeFeedb<-read.csv(paste(abs, "fittedData.three.Phase2.RescorlaWagner_feedbALL.csv", sep=""))
+
+threeObs<-read.csv(paste(abs, "fittedData.three.Phase2.RescorlaWagner_obsALL.csv", sep=""))
+
+exclPhase1<-c()
+
+threeFeedb.exc<-threeFeedb[!threeFeedb$SubNum %in% exclPhase1, ]
+threeObs.exc<-threeObs[!threeObs$SubNum %in% exclPhase1, ]
+
+# select only where practice == 0
+threeFeedb.exc<-threeFeedb.exc[threeFeedb.exc$practice==0,]
+threeObs.exc<-threeObs.exc[threeObs.exc$practice==0,]
+
+# delete the fillers
+threeFeedb.exc<-threeFeedb.exc[threeFeedb.exc$fillers==0,]
+threeObs.exc<-threeObs.exc[threeObs.exc$fillers==0,]
+
+```
+
+### check the difference between value of the predicted and value of the observed one
+
+# pilot first
+```{R}
+names(pilotFeedb)
+
+getPrVsObs<-function(df){
+  #------------------------------------------------------------------------#
+  # function that returns a variable that represents the difference between
+  # the value of the category that participants predicted - the value of the 
+  # category that participants observed
+  # INPUT - dataframe with fitted data (RL model)
+  # OUTPUT - a dataframe with the prVsObs variable
+  #------------------------------------------------------------------------#
+  
+  # create the variable  
+  df$prVsObs<-NA
+  for (n in 1:nrow(df)){
+    
+    if (df$response[n]!=0){ 
+      predicted<-paste("P", df$response[n],sep="")
+      observed<-paste("P", df$object_cat[n],sep="")
+      df$prVsObs[n]<-df[n, predicted] - df[n, observed]
+      
+      
+    }else { # we are not assigning values when there was no choice
+      df$prVsObs[n]<-NA
+    }
+    
+    
+  }
+  return(df)
+}
+
+
+pilotFeedb.exc<-getPrVsObs(pilotFeedb.exc)
+
+# get the distribution
+# plot
+PrvsExpDistrPilot<-ggplot(pilotFeedb.exc, aes(x= prVsObs, fill=pe_level))
+print(
+  PrvsExpDistrPilot+geom_histogram(bins=30)+ facet_grid( ~ pe_level)+ggtitle("variance distribution, Pilot")
+)
+
+hist(pilotFeedb.exc$prVsObs)
+
+print(
+  ggplot(pilotFeedb.exc[pilotFeedb.exc$rec_session=="ImmediateRec",], aes( x=prVsObs, y=rec_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))
+    #facet_grid(.~acc)
+)
+
+  mod<-glmer(rec_acc~prVsObs+(prVsObs|SubNum), family = binomial(),
+             data =pilotFeedb.exc[pilotFeedb.exc$rec_session=="ImmediateRec",] )
+
+  print(
+  summary(mod)  
+)
+  
+  # get the quantile
+  
+binningData<-function(df, session){
+  #------------------------------------------------------------------------#
+  # function that creates quantiles for predicted min observed 
+  # and calculated memory for each quantile
+  # INPUT - df: a dataframe with prVsObs value. 
+  #         session:the sessions we are interested in 
+  #         ("ImmediateRec"; "DelayedRec")
+  # OUTPUT - a new aggregated datafrmae with quantiles for each Sub
+  #------------------------------------------------------------------------#
+
+# change id_acc to rec_acc
+  if (!is.null(df$rec_acc)){
+  nm<-c(which(names(df)=="rec_acc"),which(names(df)=="rec_session"),which(names(df)=="acc"))
+  names(df)[nm]<-c("id_acc", "session", "trial_acc")
+  
+  }
+  
+  # select session
+df<-df[df$session==session,]
+  
+binnedData<-vector()
+
+
+  binnedData<-vector()
+for (s in unique(df$SubNum)){
+  tryCatch({
+    # subset participant
+    currdf<-df[df$SubNum==s,]
+    #for (PElev in unique(currdf$PE_level)){
+    #currdfPE<-currdf[currdf$PE_level==PElev,]
+    for (trial_acc in c(1,0)){
+      currfacc<-currdf[currdf$trial_acc==trial_acc,]
+      # sort them
+      #currdfPEacc<-currdfPEacc[order(currdfPEacc$PEobs),]
+      # get quantiles
+      quantiles<-quantile(currfacc$prVsObs, na.rm=T)
+      # assign quantiles
+      currfacc$quantile<-NA
+      for (n in 1:nrow(currfacc)){
+        if (!is.na(currfacc$prVsObs[n])){
+        if (currfacc$prVsObs[n]>=quantiles[1] & currfacc$prVsObs[n]<quantiles[2]){
+          currfacc$quantile[n]<-1  
+        } else if(currfacc$prVsObs[n]>=quantiles[2] & currfacc$prVsObs[n]<quantiles[3]){
+          currfacc$quantile[n]<-2
+          
+        } else if (currfacc$prVsObs[n]>=quantiles[3] & currfacc$prVsObs[n]<quantiles[4]){
+          currfacc$quantile[n]<-3
+        } else if (currfacc$prVsObs[n]>=quantiles[4] ){
+          currfacc$quantile[n]<-4
+        } 
+        
+      }
+      }
+      # create mean of id_acc and PEobs by quantile
+      df_agg<-currfacc %>%
+        group_by(quantile) %>%
+        dplyr::summarise(prVsObs = mean(prVsObs, na.rm=T), id_acc = mean(id_acc, na.rm=T),
+                         #PE_level = unique(PE_level), 
+                         SubNum = unique(SubNum), 
+                         trial_acc = unique(trial_acc), session = unique(session))
+      
+      
+      binnedData<-rbind(binnedData, as.data.frame(df_agg))   
+    }
+  },  error=function(e){cat("ERROR :",conditionMessage(e), "\n", s)})  
+  
+}
+  
+  return(binnedData)
+}
+
+
+
+pilot_quantiles<-binningData(pilotFeedb.exc, "ImmediateRec")
+
+# plot 
+# visualize
+pilot_quantiles$quantile<-as.factor(pilot_quantiles$quantile)
+# plot
+PlotBind<-ggplot(pilot_quantiles, aes(x= prVsObs, fill=quantile))
+print(
+  PlotBind+geom_histogram()+ facet_grid( trial_acc~ quantile)+ggtitle("quantile distribution,All")
+)
+
+# by participant
+pilot_quantiles%>%
+  group_by(SubNum) %>%
+  tally()
+
+# take the se within-participant
+data_agg<-pilot_quantiles %>%
+  group_by(quantile, SubNum) %>%
+  dplyr::summarise(id_acc = mean(id_acc, na.rm = T))
+
+data_agg<-data_agg[complete.cases(data_agg),]
+
+library(Rmisc)
+dat_summary <- summarySEwithin(data_agg,
+                               measurevar = "id_acc",
+                               withinvars = c("quantile", "trial_acc"), 
+                               idvar = "SubNum")
+
+data_agg$quantile<-as.factor(data_agg$quantile)
+gplotquantprvsobs<-ggplot(data_agg, aes( x=quantile, y=id_acc))+
+  geom_bar(aes(quantile, id_acc, fill = quantile),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  
+  geom_errorbar(aes(y = id_acc, ymin = id_acc - se, ymax = id_acc + se),
+                color = "black", width = 0.10, data=dat_summary)
+#  facet_wrap(trial_acc~.)
+#scale_x_discrete(
+#  labels=c(as.character(round(quantile,2))) )
+
+print(gplotquantprvsobs)
+
+# analysie
+
+modQuant<-lmer(id_acc~quantile+(1|SubNum),
+             data =data_agg)
+
+
+summary(modQuant)
+  
+print(
+Anova(modQuant)
+)
+```
+
+### Now three
+```{R}
+threeFeedb.exc<-getPrVsObs(threeFeedb.exc)
+
+threeFeedb.exc$session<-as.factor(threeFeedb.exc$session)
+levels(threeFeedb.exc$session) <- c("ImmediateRec", "DelayedRec")
+
+# get the distribution
+# plot
+threeFeedb.exc$PE_level<-as.factor(threeFeedb.exc$PE_level)
+PrvsExpDistrPilot<-ggplot(threeFeedb.exc, aes(x= prVsObs, fill=PE_level))
+print(
+  PrvsExpDistrPilot+geom_histogram(bins=30)+ facet_grid( ~ PE_level)+ggtitle("variance distribution, Pilot")
+)
+
+hist(threeFeedb.exc$prVsObs)
+
+print(
+  ggplot(threeFeedb.exc[threeFeedb.exc$session=="ImmediateRec",], aes( x=prVsObs, y=id_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))
+    #facet_grid(.~acc)
+)
+
+  mod<-glmer(id_acc~prVsObs+(prVsObs|SubNum), family = binomial(),
+             data =threeFeedb.exc[threeFeedb.exc$session=="ImmediateRec",] )
+
+  print(
+  summary(mod)  
+)
+  
+  # get the quantile
+three_quantiles<-binningData(threeFeedb.exc, "ImmediateRec")
+
+# plot 
+# visualize
+three_quantiles$quantile<-as.factor(three_quantiles$quantile)
+# plot
+PlotBind<-ggplot(three_quantiles, aes(x= prVsObs, fill=quantile))
+print(
+  PlotBind+geom_histogram()+ facet_grid( .~ quantile)+ggtitle("quantile distribution,All")
+)
+
+# by participant
+three_quantiles%>%
+  group_by(SubNum) %>%
+  tally()
+
+# take the se within-participant
+data_agg<-three_quantiles %>%
+  group_by(quantile, SubNum) %>%
+  dplyr::summarise(id_acc = mean(id_acc, na.rm = T))
+
+data_agg<-data_agg[complete.cases(data_agg),]
+
+library(Rmisc)
+dat_summary <- summarySEwithin(data_agg,
+                               measurevar = "id_acc",
+                               withinvars = c("quantile"), 
+                               idvar = "SubNum")
+
+data_agg$quantile<-as.factor(data_agg$quantile)
+gplotquantprvsobs<-ggplot(data_agg, aes( x=quantile, y=id_acc))+
+  geom_bar(aes(quantile, id_acc, fill = quantile),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  
+  geom_errorbar(aes(y = id_acc, ymin = id_acc - se, ymax = id_acc + se),
+                color = "black", width = 0.10, data=dat_summary)
+#  facet_wrap(trial_acc~.)
+#scale_x_discrete(
+#  labels=c(as.character(round(quantile,2))) )
+
+print(gplotquantprvsobs)
+
+# analyse
+modQuant<-lmer(id_acc~quantile+(1|SubNum),
+             data =data_agg)
+
+
+summary(modQuant)
+  
+print(
+Anova(modQuant)
+)
+
+
+```
+
+
+### now for the two aggregated
+```{r}
+pilotFeedb.exc$setup<-"pilot"
+threeFeedb.exc$setup<-"three"
+
+
+VoI<-c("pe_level", "trialN", "rec_acc", "acc", "rec_session", "SubNum", "prVsObs") 
+pilotFeedb.exc<-pilotFeedb.exc[, VoI]
+names(pilotFeedb.exc)[c(1,3,4,5)]<-c("PE_level",  "id_acc","trial_acc", "session")
+
+threeFeedb.exc$SubNum<-threeFeedb.exc$SubNum+max(unique(pilotFeedb.exc$SubNum))
+
+# rename PE levels
+levels(pilotFeedb.exc$PE_level) <- c("0.9", "0.1", "0.5")
+# order the PE
+pilotFeedb.exc$PE_level<-factor(pilotFeedb.exc$PE_level, level = c("0.1", "0.5",  "0.9"))
+
+
+threeFeedb.exc<-threeFeedb.exc[, names(pilotFeedb.exc)]
+
+# convert PElevel as factor
+threeFeedb.exc$PE_level<-as.factor(threeFeedb.exc$PE_level)
+
+
+# merge thetwo
+allDataFeedb<-data.frame(rbind(pilotFeedb.exc,threeFeedb.exc ))
+#allDataObs<-data.frame(rbind(pilotObs.exc,threeObs.exc ))
+
+# order the PE
+allDataFeedb$PE_level<-factor(allDataFeedb$PE_level, level = c("0.1","0.3", "0.5", "0.7", "0.9"))
+#allDataObs$PE_level<-factor(allDataObs$PE_level, level = c("0.1","0.3", "0.5", "0.7", "0.9"))
+
+# change the order of the sessions
+allDataFeedb$session<-factor(allDataFeedb$session, level = c("ImmediateRec", "DelayedRec"))
+#allDataObs$session<-factor(allDataObs$session, level = c("ImmediateRec", "DelayedRec"))
+
+
+# get the distribution
+# plot
+allDataFeedb$PE_level<-as.factor(allDataFeedb$PE_level)
+PrvsExpDistrPilot<-ggplot(allDataFeedb, aes(x= prVsObs, fill=PE_level))
+print(
+  PrvsExpDistrPilot+geom_histogram(bins=30)+ facet_grid(trial_acc ~ PE_level)+ggtitle("variance distribution, Pilot")
+)
+
+
+hist(allDataFeedb$prVsObs)
+
+print(
+  ggplot(allDataFeedb[allDataFeedb$session=="ImmediateRec",], aes( x=prVsObs, y=id_acc))+
+    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))
+    #facet_grid(.~acc)
+)
+
+  mod<-glmer(id_acc~prVsObs+(prVsObs|SubNum), family = binomial(),
+             data =allDataFeedb[allDataFeedb$session=="ImmediateRec",] )
+
+  print(
+  summary(mod)  
+)
+  
+  # get the quantile
+all_quantiles<-binningData(allDataFeedb[complete.cases(allDataFeedb),], "ImmediateRec")
+
+# plot 
+# visualize
+all_quantiles$quantile<-as.factor(all_quantiles$quantile)
+# plot
+PlotBind<-ggplot(all_quantiles, aes(x= prVsObs, fill=quantile))
+print(
+  PlotBind+geom_histogram()+ facet_grid( trial_acc~ quantile)+ggtitle("quantile distribution,All")
+)
+
+# by participant
+all_quantiles%>%
+  group_by(SubNum) %>%
+  tally()
+
+# take the se within-participant
+data_agg_all<-all_quantiles %>%
+  group_by(quantile,trial_acc, SubNum) %>%
+  dplyr::summarise(id_acc = mean(id_acc, na.rm = T))
+
+
+data_agg_all<-data_agg_all[complete.cases(data_agg_all),]
+
+library(Rmisc)
+dat_summary_all <- summarySEwithin(data_agg_all,
+                               measurevar = "id_acc",
+                               withinvars = c("quantile", "trial_acc"), 
+                               idvar = "SubNum", na.rm=T)
+
+data_agg_all$quantile<-as.factor(data_agg_all$quantile)
+
+gplotquantprvsobs<-ggplot(dat_summary_all, aes( x=quantile, y=id_acc))+
+  geom_bar(aes(quantile, id_acc, fill = quantile),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  
+  geom_errorbar(aes(y = id_acc, ymin = id_acc - se, ymax = id_acc + se),
+                color = "black", width = 0.10, data=dat_summary_all)+
+ facet_wrap(trial_acc~.)
+#scale_x_discrete(
+#  labels=c(as.character(round(quantile,2))) )
+
+print(gplotquantprvsobs)
+
+# analyse
+modQuant<-lmer(id_acc~quantile+(1|SubNum),
+             data =data_agg)
+
+
+summary(modQuant)
+  
+print(
+Anova(modQuant)
+)
+```

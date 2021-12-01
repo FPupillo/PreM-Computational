@@ -1,0 +1,24 @@
+{
+    "id": "84786EBA",
+    "path": "~/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/likelihood_functions/lik_RescorlaWagner_feedbAndObs.R",
+    "project_path": "computational_model/likelihood_functions/lik_RescorlaWagner_feedbAndObs.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1626269165976.0,
+    "source_on_save": false,
+    "relative_order": 17,
+    "properties": {
+        "cursorPosition": "0,88",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1623769328,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1623769328,
+    "read_only": false,
+    "read_only_alternatives": []
+}

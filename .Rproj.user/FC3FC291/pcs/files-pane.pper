@@ -1,0 +1,17 @@
+{
+    "sortOrder": [
+        {
+            "columnIndex": 2,
+            "ascending": true
+        },
+        {
+            "columnIndex": 3,
+            "ascending": false
+        },
+        {
+            "columnIndex": 4,
+            "ascending": false
+        }
+    ],
+    "path": "~/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/computational_model/parameter_recovery"
+}

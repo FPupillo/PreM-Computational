@@ -1,0 +1,141 @@
+#  
+# source the files with the function  s
+rm(list=ls())
+library(here)
+library(beepr)
+cd<-getwd()
+# source the files with the function
+source(here("helper_functions/BICcompute.R"))
+source(here("helper_functions/searchGlobal.R"))
+source(here("helper_functions/softmax.R"))
+source(here("helper_functions/getFiles.R"))
+source(here("helper_functions/modelFunPhase2.R"))
+source(here("helper_functions/getResp.R"))
+
+# likelihood functions
+setwd("likelihood_functions2")
+likfun<-list.files()
+for (f in 1:length(likfun)){
+  source(likfun[f])
+}
+
+setwd(cd)
+
+phase1Files<-selPhase(1)
+setwd(cd)
+
+phase2Files<-selPhase(2)
+setwd(cd)
+
+# list all the output files that start with "phase1"
+setwd(paste(cd, "/output_files", sep=""))
+
+files1<-list.files(pattern= c("phase1.*.csv$"))
+
+setwd(cd)
+
+# loop through the .csv files that contain the different parameter estimations
+for (f in 1: length(files1)){
+  if (exists("datafinal")){
+  rm(datafinal)
+  }
+  param<-read.csv(paste("output_files/",files1[f], sep=""))
+  # get the beta limit
+  betalimit<-as.numeric(substr(sub(".*betalimit=", "", files1[f]), 1, 2))
+  
+  # get the initial Q
+  initialQ<-as.numeric(substr(sub(".*initialQ=", "", files1[f]), 1, 1))
+  initialQ<-matrix(initialQ, ncol=3, nrow = 6)
+  
+  # initial Q_o is always zerp
+  initialQ_o<-0
+  initialQ_o<- matrix(initialQ, nrow =6, ncol=3)
+  
+  initialQ_o2<-0
+  initialQ_o2<- matrix(initialQ, nrow =6, ncol=3)
+  
+  # get the model type
+  modsub<-sub(".*RescorlaWagner_", "", files1[f])
+  if (nchar(modsub)>20){ # if it is the dirichlet of the choicekernel
+    if (length(grep(pattern = "ChoiceKernel", modsub))>0){
+      modsub<-"ChoiceKernel.csv"
+      modeltype<-paste( substr(modsub, 1, nchar(modsub)-4), sep="")
+      likelihoodfunction<-get(paste("lik_", modeltype, sep=""))
+      
+    } else if (length(grep(pattern = "Dirichlet", modsub))>0){
+      modsub<-"Dirichlet.csv"
+      modeltype<-paste( substr(modsub, 1, nchar(modsub)-4), sep="")
+      likelihoodfunction<-get(paste("lik_", modeltype, sep=""))
+      
+    }
+  }else{
+    modeltype<-paste("RescorlaWagner_", substr(modsub, 1, nchar(modsub)-4), sep="")
+  }  
+  print(paste("working on model", modeltype, sep=""))
+  
+  # get the likelihood function
+  likelihoodfunction = get(paste("lik_", modeltype,  sep=""))
+  
+  for (j in 1: length(phase2Files)){
+    print(paste("Working on participant", j))
+    #counter for the column number of the Matrix that stores the variables
+    
+    # read the files
+    file1<-read.csv(paste("trial_sequences/",phase1Files[j], sep=""))
+    
+    # extract subj num
+    SubNum<-round(as.numeric(substr(phase2Files[j],5,6)),1)
+    # alpha and beta
+    if (!is.null(param$alpha)){
+    alpha<-param$alpha[param$PartNum==SubNum]
+    } else {alpha<-NA}
+    if (!is.null(param$alpha)){
+    beta<-param$beta[param$PartNum==SubNum]
+    }else{beta<-NA}
+    if (!is.null(param$alpha_c)){
+    alpha_o<-param$alpha_c[param$PartNum==SubNum]
+    }else{alpha_c<-NA}
+    if (!is.null(param$beta_c)){
+      beta_o<-param$beta_c[param$PartNum==SubNum]
+    }else{beta_c<-NA}
+    
+    
+    
+    # now read the data from phase 2
+    file2<-read.csv(paste("trial_sequences/",phase2Files[j], sep=""))
+    
+    data1<-likelihoodfunction(Data=file1, alpha=alpha, beta=beta, alpha_o = alpha_o, beta_o= beta_o,
+                              print = 3 , initialQ=initialQ, initialQ_o=initialQ_o)    
+    
+    if (!is.null(data1$CK1)){
+    initialQ2<-getCKsPhase1(data1)
+     }
+    if (!is.null(data1$Q1)){
+    initialQ2<-getQsPhase1(data1)
+    }
+    if (!is.null(data1$Q1_o)){
+      initialQ_o2<-getQ_osPhase1(data1)
+    }
+    
+    
+    if (!exists('datafinal')){
+      datafinal<-likelihoodfunction(Data=file2, alpha=alpha, beta=beta, alpha_o = alpha_o,beta_o= beta_o,
+                                    print = 3 , initialQ=initialQ2, initialQ_o=initialQ_o2)
+      datafinal$SubNum<-rep(SubNum,times=length(file2$scene_cat))
+    } else {
+      datafin<-likelihoodfunction(Data=file2, alpha=alpha, beta=beta, alpha_o = alpha_o,beta_o= beta_o,
+                                  print = 3 , initialQ=initialQ2, initialQ_o=initialQ_o2)
+      datafin$SubNum<-rep(SubNum,times=length(file2$scene_cat))
+      datafinal<-rbind(datafinal, datafin)
+    }
+
+  }
+  #name<-paste("output_files/estimationsPhase2Obs", substr(datafile, 20, 39), ".csv", sep="")
+  name<-paste("output_files/phase2.", substr(files1[f], 8, nchar(files1[f])-4), ".csv", sep="")
+  
+  write.csv(datafinal, name)
+  
+}
+
+
+beepr::beep(8)

@@ -1,0 +1,178 @@
+---
+title: "Analysis PREMUP-priors"
+author: "Francesco Pupillo"
+date: "4/27/2021"
+html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r initialize, echo=TRUE, message=FALSE, warning=FALSE}
+# model based stats
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+setup = "priors"
+
+cd<-getwd()
+
+setwd("output_files")
+
+getwd()
+# get the files
+files<-list.files( pattern ="fittedData.priors.Phase2.*")
+
+```
+
+
+```{r echo=FALSE}
+
+# set current directory to the parent folder
+setwd(dirname(getwd()))
+
+getwd()
+
+# absolute path
+abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
+
+# loop through the files
+for (file in files){
+
+fittedData<-read.csv(paste(abs, file, sep=""))
+
+# exclude fillers
+# fittedData<-fittedData[fittedData$pred_Cond!=4,]
+
+# exclude particiapnts who got 0 in the recognition and above 90% aat the delayed recognition
+  # exclZ<-19
+  # 
+  # for (j in 1: length(exclZ)){
+  #   fittedData<-fittedData[fittedData$SubNum!=exclZ[j],]
+  # }
+  # 
+
+# convert variables
+fittedData$PE_level<-as.factor(fittedData$PE_level)
+# fittedData$PE_level<-factor(fittedData$PE_level, level = c("LowPE", "MediumPE", "HighPE"))
+
+tryCatch({
+fittedData$session<-as.factor(fittedData$session)
+levels(fittedData$session) <- c("ImmediateRec", "DelayedRec")
+}, error = function(e){})
+
+    # at this point we need to take the error bars withing participant
+    
+  ###############################################################
+  #### PE depending on the observation
+  ##############################################################
+
+  fittedData$PEobs<-NA
+  for (o in 1: nrow(fittedData)){
+    if (fittedData$object_cat[o]==1){
+      fittedData$PEobs[o]<-fittedData$Delta1[o]
+    }else if(fittedData$object_cat[o]==2){
+      fittedData$PEobs[o]<-fittedData$Delta2[o]
+    }
+  }
+ 
+  #summarise
+  fittedData %>%
+    group_by (PE_level) %>%
+    summarise(mean=mean(PEobs, na.rm=T)) 
+  
+    # distribution of PE by condition
+  PEobsdistr<-ggplot(fittedData, aes(x= PEobs, fill=PE_level))
+  print(
+  PEobsdistr+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE based on the observation")
+  )
+  
+   # by participant
+  ggplot(fittedData, aes(x=PEobs))+ geom_histogram()+
+    #aes(colour = factor(SubNum))
+    facet_wrap(.~SubNum)
+  
+      # plot it PE by recog
+ PErespPlot<-ggplot(fittedData, aes(x=PEobs, y=id_acc))
+ print(
+  PErespPlot+
+    geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+              se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+
+    facet_wrap(.~session) +ggtitle("effect of PEobs on memory")
+ )
+  
+ fittedData<-fittedData[!is.na(fittedData$Peobs),]
+   # analyse
+  modobs<-glmer(id_acc~poly(PEobs,2)*session+(PEobs*session|SubNum),family=binomial,
+                data = fittedData, 
+                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+ 
+  print(
+  summary(modobs)
+)
+    
+  ### Pe quantiles
+ quantPEobs<-quantile(fittedData$PEobs, na.rm=T)
+
+  fittedData$PEquantobs<-NA
+  for (o in 1: nrow(fittedData)){
+    if (!is.na(fittedData$PEobs[o])){
+      if (fittedData$PEobs[o]> quantPEobs[1] & fittedData$PEobs[o]< (quantPEobs[2])){
+        fittedData$PEquantobs[o]<-1
+        
+      }else if (fittedData$PEobs[o]>= quantPEobs[2] & fittedData$PEobs[o]< quantPEobs[3] ){
+        fittedData$PEquantobs[o]<-2
+      }else if(fittedData$PEobs[o]>=  quantPEobs[3] & fittedData$PEobs[o]<quantPEobs[4] ){
+        fittedData$PEquantobs[o]<-3
+      }else if(fittedData$PEobs[o]>=quantPEobs[4]){
+        fittedData$PEquantobs[o]<-4
+      }
+    }
+  }
+   
+  # detach the Rmisc package
+  #detach("package:Rmisc", unload=TRUE)
+
+  #library(dplyr)
+    # take the se within-participant
+    data_agg2<-fittedData %>%
+  group_by(session, PEquantobs, SubNum) %>%
+  dplyr::summarise(id_acc = mean(id_acc, na.rm = T))
+    
+    library(Rmisc)
+     dat_summary2 <- summarySEwithin(data_agg2,
+                                measurevar = "id_acc",
+                                withinvars = c("PEquantobs", "session"), 
+                                idvar = "SubNum")
+
+    data_agg2$PEquantobs<-as.factor(data_agg2$PEquantobs)
+    gplotquantObs<-ggplot(data_agg2[complete.cases(data_agg2$PEquantobs),], aes( x=PEquantobs, y=id_acc))+
+    geom_bar(aes(PEquantobs, id_acc, fill = PEquantobs),
+             position="dodge",stat="summary", fun.y="mean", SE=T)+
+    
+  geom_errorbar(aes(y = id_acc, ymin = id_acc - se, ymax = id_acc + se),
+              color = "black", width = 0.10, data=dat_summary2[complete.cases(dat_summary2),])+
+       facet_wrap(session~.)+
+       scale_x_discrete(
+          labels=c(as.character(round(quantPEobs,2))) )
+  
+    print(gplotquantObs)
+
+        
+}
+```

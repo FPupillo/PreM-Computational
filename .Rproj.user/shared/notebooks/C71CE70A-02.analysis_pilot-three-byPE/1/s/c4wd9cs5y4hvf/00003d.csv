@@ -1,0 +1,7 @@
+"0","PEdistrAccExp2<-ggplot(exp2, aes(x= PE, fill=scn_condition))"
+"0",""
+"0","print("
+"0","  PEdistrAccExp2+geom_histogram()+ facet_grid( trial_acc~ scn_condition)+ggtitle(""PE observational distribution, Three"")"
+"0",")"
+"2","`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+"

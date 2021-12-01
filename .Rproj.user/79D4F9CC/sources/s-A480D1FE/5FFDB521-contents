@@ -1,0 +1,96 @@
+# analyse data three
+
+rm(list=ls())
+
+library(ggplot2)
+library(lme4)
+library(dplyr)
+library(reshape2)
+library(lmerTest)
+library(car)
+
+cd<-getwd()
+
+setup = "three"
+
+setwd("computational_model/output_files")
+
+# get the files
+files<-list.files( pattern ="fittedData.three.*")
+
+# absolute path
+abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
+
+file<-files[1]
+# loop through the files
+# for (file in files){
+
+fittedData<-read.csv(paste(abs, file, sep=""))
+
+# convert variables
+fittedData$PE_level<-as.factor(fittedData$PE_level)
+
+fittedData$session<-as.factor(fittedData$session)
+
+fittedData$session<-factor(fittedData$session, level = c("ImmediateRec", "DelayedRec"))
+
+##############################################################
+#### PE depending on the response
+##############################################################
+
+# fittedData$PEresp<-NA
+# for (o in 1: nrow(fittedData)){
+# if (!is.null(fittedData$Delta1)){
+#     if (fittedData$response[o]==1){
+#       fittedData$PEresp[o]<-fittedData$Delta1[o]
+#     }else if(fittedData$response[o]==2){
+#       fittedData$PEresp[o]<-fittedData$Delta2[o]
+#     }else if(fittedData$response[o]==3){
+#       fittedData$PEresp[o]<-fittedData$Delta3[o]
+#     } else {fittedData$PEresp[o]<-NA}
+# } else {fittedData$PEresp[o] <-fittedData$Delta}
+# }
+
+fittedData$PEresp<-fittedData$Delta
+
+#summarise
+fittedData %>%
+  group_by (PE_level) %>%
+  summarise(mean=mean(PEresp, na.rm=T))
+
+
+# distribution of PE by condition
+PErespdistr<-ggplot(fittedData, aes(x= PEresp, fill=PE_level))
+PErespdistr+geom_histogram()+ facet_grid( ~ PE_level)+ggtitle("PE based on the feedback")
+
+# by participant
+
+g<-ggplot(fittedData, aes(x=PEresp))+ geom_histogram()+
+  #aes(colour = factor(SubNum))
+  facet_wrap(.~SubNum)
+print(g) 
+# plot it PE by recog
+PErespPlot<-ggplot(fittedData, aes(x=PEresp, y=rec_acc))
+PErespPlot+
+  geom_line(stat = "smooth", method="glm",formula=y~x,method.args=list(family="binomial"),
+            se=F, alpha = 0.5)+aes(colour = factor(SubNum))+
+  geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+  theme(strip.text.x = element_text(size = 13))+
+  facet_wrap(.~session) +ggtitle("effect of feedback-based PE on memory")
+
+modresp<-glmer(rec_acc~PEresp*session+(PEresp*session|SubNum),family=binomial,
+               data = fittedData, 
+               control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modresp)
+
+# only immed
+modImm<-glmer(rec_acc~PEresp+(PEresp|SubNum),family=binomial,
+              data = fittedData[fittedData$session=="ImmediateRec",])
+
+summary(modImm)
+
+modDel<-glmer(rec_acc~PEresp+(PEresp|SubNum),family=binomial,
+              data = fittedData[fittedData$session=="DelayedRec",])
+
+summary(modDel)

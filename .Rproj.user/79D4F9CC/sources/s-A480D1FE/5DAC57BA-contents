@@ -1,0 +1,282 @@
+---
+title: "R-functions"
+author: "Francesco Pupillo"
+date: "02/10/2020"
+output: 
+  #github_document:
+  md_document:
+    variant: markdown_github
+    toc: true
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R functions
+
+This is a collection of functions typically used in R, especially in psychology.  
+
+For any question, feel free to drop me an email : pupillo@psych.uni-frankfurt.de
+
+### Exclude rows based on a set of criteria (or participants)
+Useful code to exclude rows in a dataset that corresponds to participants we decided to exclude. 
+
+```{r exclusionSeveralCriteria, echo=TRUE}
+
+# create fake dataframe with participants and performance columns
+df<-data.frame(participants=seq(1:10), performance= sample(seq(0, 1, length.out = 100), 10, T))
+
+df
+# Participants that we want to exclude
+partExcl<-c(1,3,5)
+
+# code to exclude participants
+df<-df[!df$participants %in% partExcl, ]
+
+df
+
+```
+### Count the arguments of a function
+Function that returns the number of arguments in a function
+```{r count the arguments of a function, echo=TRUE}
+# let's create a function that calculate the means between three dimenions (x, y ,z)
+
+foo<-function(x, y, z){
+  sum (x, y, z)/ length(c(x, y,z))
+}
+
+# now I want to assign the number of the arguments of this function to a vector. 
+# I can use "formals" to store the argumens
+
+fooArgs<-formals(foo)
+
+fooArgs
+
+# then I can extract the number of the arguments with "length"
+numfooArgs<-length(fooArgs)
+
+numfooArgs
+```
+
+### Call a function by a character string
+How to assign a name of a function to a character string and then call it later? By using "get".
+```{r call a function by a character string, echo=TRUE}
+# Create a function. This one calculate the average of three dimensions
+
+foo<-function(x, y, z){
+  sum (x, y, z)/ length(c(x, y,z))
+}
+
+# Now create a carachter string with the name of the formula
+
+foostr<-"foo"
+
+foostr
+
+# use "get" to call the function
+
+myfunction<-get(foostr)
+
+# now we can call our function
+myfunction(3,4,5)
+
+numfooArgs
+```
+
+
+
+
+### Go through a list of items and select the ones that meet some criteria (contains rm in a loop)
+This example is based on the BOSS dataset
+``` {r select items}
+# we need the readxl package to read the excel file with the object info
+library(readxl)
+# and dplyr for intabulating
+library(dplyr)
+
+# retrieve the file with info of the categories
+category<-read_excel("SI1.xlsx", sheet = "Sheet2")
+
+# change fourth and fifth names to include an underscore
+names(category)[4:5]<-c("modal_categ", "cat_agreement")
+
+# get the number of objects per category
+table<-category %>% 
+  group_by(modal_categ) %>% 
+  tally()
+
+# order by modal categ and name agreement
+table<-table[order(table$n, decreasing=T),]
+
+# show the first 11
+head(table, n=11)
+
+# select the categories
+selCat<-c( "Outdoor activity & sport item", "Kitchen & utensil","Electronic device & accessory", "Hand labour tool & accessory")
+
+# create a dataset with only the categories
+dataSel<-category[category$modal_categ %in% selCat, ]
+
+# select the the first 40 images with the highest category agreement level for each category, 
+# assign them to the relative dataset
+for (cat in 1:length(selCat)){
+  # subset the database
+  dataim<- dataSel[dataSel$modal_categ==selCat[cat],]
+  # order it
+  dataim<-dataim[order(dataim$cat_agreement, decreasing = T),]
+  # select first 40 
+  datapractsel<-dataim[1:40,]
+  # assign to a dataset
+  assign(paste(selCat[cat],"_dat",sep=""), datapractsel)
+  
+}
+
+# merget the datasets 
+tomerge<-ls(pattern = "*_dat")
+dataim_all<-as.data.frame(NULL)
+
+for (n in tomerge){
+  dataim_all<-rbind(dataim_all, get(n) )
+}
+
+# delete the previously created single datasets
+for (i in 1:length(tomerge)){
+  name<-tomerge[i]
+  rm(list=tomerge[i])
+}
+
+```
+### Select elements in a vector that starts with a letter
+```{r}
+
+# create a vector
+vect<-c("One", "Two", "Three", "Four", "Five")
+
+# select only the elements that start with the letter "T"
+Tvect<-vect[grep("T", vect)]
+
+Tvect
+
+```
+### System Administration Tasks
+
+#### Creating, deleting, copying files and directories
+``` {r create delete copy folders, eval=F}
+# create a directory
+dir.create("new_folder")
+
+# create a file
+file.create("new_text_file.txt")
+file.create("new_word_file.docx")
+file.create("new_csv_file.csv")
+
+# create lots of files
+sapply(paste0("file", 1:100, ".txt"), file.create)
+
+# copy files
+file.copy("source_file.txt", "destination_folder")
+
+
+# list all CSV files non-recursively
+list.files(pattern = ".csv")
+
+# list all CSV files recursively through each sub-folder
+list.files(pattern = ".csv", recursive = TRUE)
+
+# read in all the CSV files
+all_data_frames <- lapply(list.files(pattern = ".csv"), read.csv)
+ 
+# stack all data frames together
+single_data_frame <- Reduce(rbind, all_data_frames)
+
+# remove files
+file.remove("new_text_file.txt")
+
+# check if a file exists
+file.exists("new_text_file.txt")
+
+# check if a folder exists
+file.exists("new_folder")
+```
+
+#### Get the script's directory path
+Get the path to directory that contains the script and set it as the working directory 
+```{r script directory, echo=TRUE}
+
+# get the script directory
+path<-rstudioapi::getSourceEditorContext()$path
+
+# split the string into the names of the folders
+names<-unlist(strsplit(path, split="/"))
+
+# get number of carachters last name (file name)
+charfile<-nchar(tail(names,1))
+
+# subtract that to the path
+path<-substr(path, 1,nchar(path) - charfile)
+
+# set wd 
+setwd(path)
+```
+
+#### Select files according to characters that come before a symbol
+Return the characters before a specific symbol
+```{r symbol, echo=TRUE}
+
+# take the first file from the previous example
+setwd("testsel")
+files<-list.files( pattern= ".csv$")
+name<-files[1]
+
+name
+# Select the characters before the ".pdf"
+sel<-sub("\\.pdf.*", "", name)
+
+sel
+```
+
+#### Select files that meet a criterion
+Selecting files that meets a criterion, or file estension
+```{r select files, echo=TRUE}
+# create a vector with names that vary in different ways
+files<-vector()
+
+for (i in 1:10){
+  # the first five are .csv, the others are .pdf
+  if (i<6){
+    files[i]<- paste("myfile", i, ".csv", sep="")
+  } else{
+    files[i]<- paste("myfile", i, ".pdf", sep="")
+  }
+}
+
+# plus some random files
+files[11:13]<-c("random1.pdf", "test2.csv", "dunno.rnd")
+
+# create the files in a subfolder
+# dir.create("testsel")
+
+setwd("testsel")
+
+# create files
+for (f in 1:length(files)){
+  write(0, file = files[f])
+}
+
+
+
+# select all the files that are .csv
+selCsv<-list.files( pattern= ".csv$")
+selCsv
+
+# now, select files that are .csv OR that start with "myfile"
+selCsv<-list.files(pattern= c("myfile", ".csv$"))
+selCsv
+
+# now, select files that are .csv AND that start with "myfile"
+selCsv<-list.files(pattern= c("myfile.*.csv$"))
+selCsv
+
+```
