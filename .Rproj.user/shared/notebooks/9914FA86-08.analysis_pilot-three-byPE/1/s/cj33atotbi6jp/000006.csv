@@ -1,8 +1,0 @@
-"0","# merge thetwo
-allData<-data.frame(rbind(exp1,exp2 ))
-"
-"2","Warning in `[<-.factor`(`*tmp*`, ri, value = c(1L, 1L, 1L, 1L, 1L, 1L, 1L,  :"
-"2","
- "
-"2"," invalid factor level, NA generated
-"

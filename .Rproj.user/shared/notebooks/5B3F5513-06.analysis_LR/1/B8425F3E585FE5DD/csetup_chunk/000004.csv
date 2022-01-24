@@ -1,9 +1,0 @@
-"0","knitr::opts_chunk$set(echo = TRUE)"
-"0","rm(list=ls())"
-"0",""
-"0","abs<-""/Users/francesco/PowerFolders/Frankfurt_University/PREMCE/Pilots/Premce-rev2/testing/gitLab/premce/Premce-rev2/Data+Analysis/"""
-"0",""
-"0","recogData<-read.csv(paste(abs, ""output_files/recognitionData.csv"", sep=""""))"
-"2","cannot open file '/Users/francesco/PowerFolders/Frankfurt_University/PREMCE/Pilots/Premce-rev2/testing/gitLab/premce/Premce-rev2/Data+Analysis/output_files/recognitionData.csv': No such file or directory"
-"2","Error in file(file, ""rt"") : cannot open the connection
-"

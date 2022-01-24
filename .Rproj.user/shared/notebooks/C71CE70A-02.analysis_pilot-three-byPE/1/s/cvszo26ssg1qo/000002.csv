@@ -1,8 +1,0 @@
-"0",""
-"0","exp2<-read.csv(paste(abs, ""fittedData.exp2.Phase2.fLR_Instr.csv"", sep=""""))"
-"0",""
-"0","exclPhase1<-c()"
-"0",""
-"0","threeFeedb.exc<-threeFeedb[!threeFeedb$SubNum %in% exclPhase1, ]"
-"2","Error: object 'threeFeedb' not found
-"

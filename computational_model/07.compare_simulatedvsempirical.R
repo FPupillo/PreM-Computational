@@ -10,8 +10,6 @@ library(dplyr)
 library(ggplot2)
 library(here)
 
-
-
 # retrieve functions
 cd<-getwd()
 setwd("computational_model")
@@ -23,9 +21,6 @@ source("helper_functions/getFiles.R")
 source("helper_functions/getcumAcc.R")
 source("helper_functions/cumAcc.R")
 source("helper_functions/update.R")
-#source("helper_functions/updateCK.R")
-
-
 
 setwd("simulation_functions")
 simfun<-list.files()
@@ -54,9 +49,11 @@ setwd(cd)
 
 setups<-c("exp1", "exp2")
 
-for (1 in 1:length(setups)){
+# -----------------------------------------------------------------------------#
+# loop by setup
+for (setup in (setups)){
   
-setup<-"exp1"
+#setup<-"exp1"
 
 # list all the output files that start with "phase1"
 setwd(paste(cd,"/", setup, 
@@ -108,7 +105,9 @@ trials<-20+80 # 20 for phase1 and 80 for phase2
 #set.seed(13465791)
 # loop through the files
 
-for (f in 3){
+# -----------------------------------------------------------------------------#
+# loop by model
+for (f in 1:3){
   
   param<-read.csv(paste0(cd, "/", setup, 
                         "/outputs/group_level/computational_model/",
@@ -146,7 +145,7 @@ for (f in 3){
   # model name
   
   mod<- ifelse(setup=="exp1", substr(files1[f], 53, nchar(files1[f])-4), 
-               substr(files1[3], 52, nchar(files1[f])-4))
+               substr(files1[f], 52, nchar(files1[f])-4))
   #mod<-"fLR_Instr"
   
   simulation_function<<-get(paste("simulate_", mod, sep=""))
@@ -340,6 +339,13 @@ for (f in 3){
               ifelse(trialNbyscene>80, "Late","middle")))
   }
   
+  
+  # the following analysis of the learning rate 
+  # is not possible for the dLR_instrumental model, since it does not 
+  # estimate an alpha per participant
+  if (files1[f]!= "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.dLR_Instr.csv"  &
+      files1[f]!= "ParameterEstimation.exp2.betalimit=10.initialQ=0.5.dLR_Instr.csv"
+      ){
   # select oly strong prior condition
   #dfAll<-dfAll[dfAll$scn_condition>2,]
   # now plot
@@ -416,7 +422,7 @@ for (f in 3){
   ggplot(param, aes(x=beta))+
     theme_bw()+
     geom_density()        
-  
+  }
   
   if (setup =="exp1"){
   # get the standard error and cumulative accuracy for simALL
@@ -497,5 +503,6 @@ for (f in 3){
   # to wait that all the graphs are printed
   dev.off()
   
+}
 }
 

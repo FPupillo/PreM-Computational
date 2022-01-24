@@ -1,4 +1,0 @@
-"0","exp2<-exp2[,VoI]
-"
-"2","Error in `[.data.frame`(exp2, , VoI) : undefined columns selected
-"
