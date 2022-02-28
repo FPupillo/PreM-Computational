@@ -104,7 +104,7 @@ data<-matrix(NA, nrow=3,ncol = 3)
 
 df<-data.frame(data)
 
-models<-c("dLR_Instr", "fLR_Instr", "fLR_Eval")
+models<-c("dLR_Instr","dfLR_Instr",  "fLR_Instr", "fLR_Eval")
 names(df)<-models
 row.names(df)<-names(df)
 

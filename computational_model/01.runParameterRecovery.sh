@@ -29,13 +29,13 @@ echo working on $model
 
 # estimate the parameters (by default with 10 for betalimit and 1 for
 # starting point)
-Rscript parameter_recovery/ParameterRecovery$model.R 10 1 $initialQ $setup
+Rscript parameter_recovery/ParameterRecovery_$model.R 10 1 $initialQ $setup
 
 
 
 done
 
 # print the outputs
-Rscript parameter_recovery/Print.ParameteRecovery.R $setup
+#Rscript parameter_recovery/Print.ParameteRecovery.R $setup
 
 done
