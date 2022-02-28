@@ -11,8 +11,7 @@ library(dplyr)
 library(ggplot2)
 library(here)
 library(gridExtra) # for plotting
-
-
+library(viridis)#
 
 # retrieve functions
 cd<-getwd()
@@ -151,7 +150,10 @@ ggplot(Datawidepart, aes(x = trialNbyscene, y=mean,
   ylab("Cumulative Accuracy")+
   #theme(legend.position = "none")+
   guides(color=guide_legend(title="Scene Condition"), fill=guide_legend(title="Scene Condition") )+
-  annotate(geom="text",  label=label,size=8,family="serif")
+  annotate(geom="text",  label=label,size=8,family="serif")+
+  scale_color_viridis(discrete=TRUE)
+  
+
 
 )
 
@@ -172,7 +174,9 @@ assign(paste0("plotID", e),
          ylab("Cumulative Accuracy")+
          #annotate(geom="text",  label=label,size=8,family="serif")+
          guides(color=guide_legend(title="Scene Condition"), fill=guide_legend(title="Scene Condition") )+
-         facet_wrap(.~participant)
+         facet_wrap(.~participant)+
+         scale_color_viridis(discrete=TRUE)
+       
        
 )
 
@@ -188,3 +192,4 @@ ggsave(filename = "computational_model/figures/cumAccbySceneExp1byID.jpg",
        plot=plotID1)
 ggsave(filename = "computational_model/figures/cumAccbySceneExp2byID.jpg", 
        plot=plotID2)
+

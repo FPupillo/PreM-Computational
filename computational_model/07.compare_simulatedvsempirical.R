@@ -9,6 +9,7 @@ rm(list=ls())
 library(dplyr)
 library(ggplot2)
 library(here)
+library(viridis)
 
 # retrieve functions
 cd<-getwd()
@@ -455,7 +456,9 @@ for (f in 1:3){
       geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2, colour=NA)+
       #geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2)+
       theme_light()+
-      ylab("Cumulative Accuracy")
+      ylab("Cumulative Accuracy")+
+      scale_color_viridis(discrete=TRUE, option = "inferno")
+    
 
   )
   } else{
@@ -489,7 +492,9 @@ for (f in 1:3){
       geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2,colour=NA)+
       theme_light()+
       facet_wrap(scn_condition~.)+
-      ylab("Cumulative Accuracy")
+      ylab("Cumulative Accuracy")+
+      scale_color_viridis(discrete=TRUE, option = "inferno")
+    
     
   )
 }

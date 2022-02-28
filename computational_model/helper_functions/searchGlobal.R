@@ -28,7 +28,7 @@ searchGlobal<-function(data, alphaBound, betaBound,
   pb<-txtProgressBar(min=0, max=startPoints)
   # create matrix to store value
   
-  if (model == "fLR_Instr" | model == "fLR_Eval"){
+  if (model == "fLR_Instr" | model == "fLR_Eval" | model == "dfLR_Instr"){
     
     Matrix<-matrix(NA, nrow = startPoints, ncol=4)
     

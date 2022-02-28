@@ -349,6 +349,27 @@ PEbyAccAllNeg<-glmer(id_acc~PE+(PE|SubNum), family= binomial,
 
 summary(PEbyAccAllNeg)
 
+# is there an effect of condition?
+PEbyAccAllCond<-glmer(id_acc~PE*trial_acc*scn_condition+(trial_acc*PE|SubNum), family= binomial, 
+                   data = allData,
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccAllCond)
+
+
+print(
+  ggplot(allData, aes( x=PE, y=id_acc))+
+    geom_line(stat="smooth",method = "glm", formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(scn_condition~trial_acc+exp)+
+    theme_bw()+
+    #ggtitle("Experiment 2")+
+    theme(legend.position = "none")+
+    ylab("p(Hit)")
+)
+
 ```
 
 ### Analyse with quantiles

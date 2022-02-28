@@ -7,6 +7,10 @@ rm(list=ls())
 # load the packages
 library(data.table)
 library(dplyr)
+library(viridis)
+library(lme4)
+library(car)
+library(ggplot2)
 
 # source the scripts
 source("computational_model/helper_functions/dprime_thres.R")
@@ -77,7 +81,9 @@ PlotBind+geom_density(alpha = .5)+theme_bw()+geom_boxplot()+
   )+
   xlab("d'")+
   theme(legend.position = "none")+
-  ggtitle("Experiment 1")
+  ggtitle("Experiment 1")+
+  scale_fill_viridis(discrete=TRUE, option = "magma") 
+
 
 # save it
 ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
@@ -155,7 +161,9 @@ PlotBind2+geom_density(alpha = .5)+theme_bw()+geom_boxplot()+
   )+
   xlab("d'")+
   theme(legend.position = "none")+
-  ggtitle("Experiment 2")
+  ggtitle("Experiment 2")+
+  scale_fill_viridis(discrete=TRUE, option = "magma") 
+
   
 
 # save it
@@ -187,6 +195,7 @@ VoI2<-c("participant", "prediction_condition", "trial_acc", "id_acc")
 
 exp2<-exp2[, ..VoI2]
 
+
 names(exp2)[c(3,4)]<-c("prediction_accuracy", "recognition_accuracy")
 
 # bind them
@@ -198,6 +207,10 @@ exp2$experiment<-"Experiment2"
 allData<-rbind(exp1, exp2)
 
 #-----------------Experiment1------------------------------------------------#
+# exclude participants with low performance in phase1
+exclPhase1<-c(7 ,16, 19, 20, 23)
+
+exp1<-exp1[!exp1$participant %in% exclPhase1, ]
 
 ### aggregate
 # take the se within-participant
@@ -211,6 +224,7 @@ data_agg_exp1_acc<-exp1 %>%
   group_by(  prediction_accuracy, participant) %>%
   dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
                    experiment = first(experiment))
+
 
 library(Rmisc)
 dat_summary_exp1 <- summarySEwithin(data_agg_exp1,
@@ -240,7 +254,9 @@ gplot_exp1_pred<-ggplot(data_agg_exp1, aes( x=prediction_condition, y=rec_acc))+
     axis.text=element_text(size=20)
   )+
   xlab("Prediction Condition")+
-  ggtitle("Experiment 1")
+  ggtitle("Experiment 1")+
+  scale_fill_viridis(discrete=TRUE, option = "magma") 
+
 
 
 gplot_exp1_pred
@@ -280,15 +296,11 @@ gplot_exp1_acc<-ggplot(data_agg_exp1_acc, aes( x=prediction_accuracy, y=rec_acc)
     axis.text=element_text(size=20)
   )+
   xlab("Prediction Accuracy")+
-  ggtitle("Experiment 1")
+  ggtitle("Experiment 1")+
+  scale_fill_viridis(discrete=TRUE, option = "magma") 
+
 
 gplot_exp1_acc
-
-# save it
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
-              "PREMUP_computational/computational_model/figures/prediction_acc_exp1.png"), 
-       width = 7, height = 7)
-
 
 # is that significant?
 modexp1_acc<-glmer(recognition_accuracy~prediction_accuracy+(prediction_accuracy  | participant),
@@ -298,7 +310,84 @@ summary(modexp1_acc)
 
 Anova(modexp1_acc)
 
+# accuracy by prediction
+data_agg_exp1_acc_pred<-exp1 %>%
+  group_by(  prediction_accuracy,prediction_condition,  participant) %>%
+  dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
+                   experiment = first(experiment))
+
+dat_summary_exp1_acc_pred <- summarySEwithin(data_agg_exp1_acc_pred,
+                                        measurevar = "rec_acc",
+                                        withinvars = c( "prediction_accuracy", "prediction_condition"), 
+                                                                                idvar = "participant")
+
+# rename the levels of prediction accuracy
+data_agg_exp1_acc_pred$prediction_accuracy<-as.factor(data_agg_exp1_acc_pred$prediction_accuracy)
+levels(data_agg_exp1_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+
+levels(dat_summary_exp1_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+
+gplot_exp1_pred_acc<-ggplot(data_agg_exp1_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
+geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
+         position="dodge",stat="summary", fun.y="mean", SE=F)+
+  
+ geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                color = "black", width = 0.10, data=dat_summary_exp1_acc_pred)+
+  facet_wrap(prediction_condition~.)+
+  theme_bw()+
+  ylab("% Hit")+
+  theme(legend.position = "none")+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20),
+    strip.text.x = element_text(size = 20)
+  )+
+  ylim(0,1)+
+  xlab("Prediction Condition")+
+  ggtitle("Experiment 1")+
+  scale_fill_viridis(discrete=TRUE, option = "plasma") 
+
+gplot_exp1_pred_acc
+
+# save it
+ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational/computational_model/figures/prediction_acc_exp1.png"), 
+       width = 9, height = 7)
+
+# is that significant?
+exp1$prediction_accuracy<-as.factor(exp1$prediction_accuracy)
+exp1$prediction_condition<-relevel(exp1$prediction_condition, ref = "Strong")
+modexp1_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition
+                        +(prediction_accuracy*prediction_condition  | participant),
+                   family = binomial, data = exp1, 
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp1_acc_pred)
+
+Anova(modexp1_acc_pred)
+
+# break down the interaction
+modexp1_acc_pred_flat<-glmer(recognition_accuracy~prediction_accuracy
+                        +(prediction_accuracy  | participant),
+                        family = binomial, data = exp1[exp1$prediction_condition=="Flat",], 
+                        control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp1_acc_pred_flat)
+
+modexp1_acc_pred_strong<-glmer(recognition_accuracy~prediction_accuracy
+                             +(prediction_accuracy  | participant),
+                             family = binomial, data = exp1[exp1$prediction_condition=="Strong",], 
+                             control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp1_acc_pred_strong)
+
 #-----------------Experiment2------------------------------------------------#
+# exclude participants with low performance in phase1
+exclPhase1exp2<-c(3 ,13, 28, 36, 39)
+
+exp2<-exp2[!exp2$participant %in% exclPhase1exp2, ]
 
 ### aggregate
 # take the se within-participant
@@ -341,7 +430,9 @@ gplot_exp2_pred<-ggplot(data_agg_exp2, aes( x=prediction_condition, y=rec_acc))+
     axis.text=element_text(size=20)
   )+
   xlab("Prediction Condition")+
-  ggtitle("Experiment 2")
+  ggtitle("Experiment 2")+
+  scale_fill_viridis(discrete=TRUE, option = "magma") 
+
 
 gplot_exp2_pred
 
@@ -368,7 +459,7 @@ library(lsmeans)
 
 lsmeans(modexp2_prediction, pairwise~prediction_condition)
 
- strVflat = c(-1,1,0)
+strVflat = c(-1,1,0)
 strVweak=c(-1,0,1)
 flatVweak = c(1, 0,1)
 
@@ -397,7 +488,37 @@ gplot_exp2_acc<-ggplot(data_agg_exp2_acc, aes( x=prediction_accuracy, y=rec_acc)
     axis.text=element_text(size=20)
   )+
   xlab("Prediction Accuracy")+
-  ggtitle("Experiment 2")
+  ggtitle("Experiment 2")+
+  scale_fill_viridis(discrete=TRUE, option = "magma") 
+
+# Prediction condition
+dat_summary_exp1_acc_pred <- summarySEwithin(data_agg_exp1_acc_pred,
+                                             measurevar = "rec_acc",
+                                             withinvars = c( "prediction_accuracy", "prediction_condition"), 
+                                             idvar = "participant")
+data_agg_exp1_acc_pred$prediction_accuracy<-as.factor(data_agg_exp1_acc_pred$prediction_accuracy)
+gplot_exp1_pred_acc<-ggplot(data_agg_exp1_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
+  geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  
+  geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                color = "black", width = 0.10, data=dat_summary_exp1_acc_pred)+
+  facet_wrap(prediction_condition~.)+
+  theme_bw()+
+  ylab("% Hit")+
+  theme(legend.position = "none")+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+  xlab("Prediction Condition")+
+  ggtitle("Experiment 1")+
+  scale_fill_viridis(discrete=TRUE, option = "magma") 
+
+gplot_exp1_pred_acc
+
 
 gplot_exp2_acc
 
@@ -414,4 +535,109 @@ modexp2_acc<-glmer(recognition_accuracy~prediction_accuracy+(prediction_accuracy
 summary(modexp2_acc)
 
 Anova(modexp2_acc)
+
+# accuracy by prediction
+data_agg_exp2_acc_pred<-exp2 %>%
+  group_by(  prediction_accuracy,prediction_condition,  participant) %>%
+  dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
+                   experiment = first(experiment))
+
+dat_summary_exp2_acc_pred <- summarySEwithin(data_agg_exp2_acc_pred,
+                                             measurevar = "rec_acc",
+                                             withinvars = c( "prediction_accuracy", "prediction_condition"), 
+                                             idvar = "participant")
+
+# rename the levels of prediction accuracy
+data_agg_exp2_acc_pred$prediction_accuracy<-as.factor(data_agg_exp2_acc_pred$prediction_accuracy)
+levels(data_agg_exp2_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+
+levels(dat_summary_exp2_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+
+gplot_exp2_pred_acc<-ggplot(data_agg_exp2_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
+  geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  
+  geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                color = "black", width = 0.10, data=dat_summary_exp2_acc_pred)+
+  facet_wrap(prediction_condition~.)+
+  theme_bw()+
+  ylab("% Hit")+
+  theme(legend.position = "none")+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20),
+    strip.text.x = element_text(size = 20)
+  )+
+  ylim(0,1)+
+  xlab("Prediction Condition")+
+  ggtitle("Experiment 2")+
+  scale_fill_viridis(discrete=TRUE, option = "plasma") 
+
+gplot_exp2_pred_acc
+
+# save it
+ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational/computational_model/figures/prediction_acc_exp2.png"), 
+       width = 9, height = 7)
+
+# is that significant?
+exp2$prediction_accuracy<-as.factor(exp2$prediction_accuracy)
+modexp2_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition
+                        +(prediction_accuracy*prediction_condition  | participant),
+                        family = binomial, data = exp2, 
+                        control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp2_acc_pred)
+
+# break down the interaction
+odexp2_acc_pred_Weak<-glmer(recognition_accuracy~prediction_accuracy
+                            +(prediction_accuracy  | participant),
+                            family = binomial, data = exp2[exp2$prediction_condition=="Weak"], 
+                            control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(odexp2_acc_pred_Weak)
+
+
+modexp2_acc_pred_Flat<-glmer(recognition_accuracy~prediction_accuracy
+                        +(prediction_accuracy  | participant),
+                        family = binomial, data = exp2[exp2$prediction_condition=="Flat"], 
+                        control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp2_acc_pred_Flat)
+
+modexp2_acc_pred_Strong<-glmer(recognition_accuracy~prediction_accuracy
+                             +(prediction_accuracy  | participant),
+                             family = binomial, data = exp2[exp2$prediction_condition=="Strong"], 
+                             control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp2_acc_pred_Strong)
+
+
+# relevel and do the strong reference
+exp2$prediction_condition<-as.factor(exp2$prediction_condition)
+exp2$prediction_condition<-relevel(exp2$prediction_condition, ref = "Strong")
+
+modexp2_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition
+                        +(prediction_accuracy*prediction_condition  | participant),
+                        family = binomial, data = exp2, 
+                        control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp2_acc_pred)
+
+
+Anova(modexp2_acc_pred)
+
+strVflat = c(-1,1,0)
+strVweak=c(-1,0,1)
+flatVweak = c(1, 0,1)
+
+contrasts(exp2$prediction_condition)<-cbind(strVflat,strVweak,flatVweak)
+modexp2_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition
+                        +(prediction_accuracy*prediction_condition  | participant),
+                        family = binomial, data = exp2, 
+                        control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp2_acc_pred)
 
