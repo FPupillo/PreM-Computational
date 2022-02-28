@@ -21,7 +21,9 @@ echo initial Q = $initialQ
 #  RescorlaWagner_feedbmin1 RescorlaWagner_obs RescorlaWagner_obsALL
 # RescorlaWagner_obsALLdualLR RescorlaWagner_obsALL1nfree RescorlaWagner_obsALL1n"
  
-models="dLR_Instr fLR_Instr fLR_Eval"
+models="dfLR_Instr"
+
+#models="dfLR_Instr dLR_Instr fLR_Instr fLR_Eval"
 
 # for single models
 for model in $models
