@@ -18,7 +18,9 @@ fi
 
 echo initial Q = $initialQ
 
-models="OptimalBayesian ObsALL Feedb"
+models="dfLR_Instr"
+
+# models="dfLR_Instr dLR_Instr fLR_Instr fLR_Eval"
 
 # for single models
 for model in $models

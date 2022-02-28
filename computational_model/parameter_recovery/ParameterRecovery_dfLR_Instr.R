@@ -39,7 +39,7 @@ Args<-commandArgs(trailingOnly = T)
 # for debugging purposes
 Args<-c(10, 1, 0.33, "exp1")
 
-# what are the contingencies?
+# what are the contingencies?"
 mu<-getmu(Args[4])
 
 setup<-Args[4]
@@ -69,11 +69,11 @@ name<- paste("output_files/parameterRecovery.",setup, ".", model, ".",
              "betalimit=",  betalim,  
              ".initialQ=", initialQ[1,1] , sep="")
 
-data<-matrix(NA, nrow=1,ncol = 3)
+data<-matrix(NA, nrow=1,ncol = 5)
 
 df<-data.frame(data)
 
-names(df)<-c("simBeta", "fitBeta",  "BIC")
+names(df)<-c("simAlpha", "fitAlpha", "simBeta", "fitBeta",  "BIC")
 
 # write it
 write.csv(df, paste0(name, ".csv"), row.names = F)
@@ -100,7 +100,7 @@ registerDoParallel(cl)
 # loop through several simuolations
 dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
   # simulate data
-  sim<-simulate_OptimalBayesian(T = trials, mu =  mu, beta =  betaran[j],
+  sim<-simulate_dfLR_Instr(T = trials, mu =  mu,alpha = alpharan[j],  beta =  betaran[j],
                                 initialQ = initialQ)
   
   # change the a to response
@@ -113,7 +113,7 @@ dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
   # estimate parameters
   est<-searchGlobal(data = sim, alphaBound = alphaBound, betaBound = betaBound, 
                     startPoints = startPoints, initialQ = initialQ, 
-                    fittingfunction = fit_OptimalBayesian, model = "OptimalBayesian" )   # assign to the dataset
+                    fittingfunction = fit_dfLR_Instr, model = "dfLR_Instr" )   # assign to the dataset
   data<-c( betaran[j],est$beta, est$BIC)
   #progress bar
   setTxtProgressBar(prb, j) 
