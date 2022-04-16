@@ -62,6 +62,7 @@ setwd(paste(cd,"/", setup,
 
 files1<-list.files()
 
+
 setwd(cd)
 
 # participants
@@ -108,7 +109,7 @@ trials<-20+80 # 20 for phase1 and 80 for phase2
 
 # -----------------------------------------------------------------------------#
 # loop by model
-for (f in 1:3){
+for (f in 1:4){
   
   param<-read.csv(paste0(cd, "/", setup, 
                         "/outputs/group_level/computational_model/",
@@ -137,6 +138,7 @@ for (f in 1:3){
   
   exclusions<-NULL
   
+  
   #participants<-participants-length(exclusions)
   paramExcl<-param[!param$PartNum %in% exclusions,]
   
@@ -156,7 +158,8 @@ for (f in 1:3){
   simAll<-vector()
   
   # create simulated data
-  cd<-setwd("computational_model")
+  setwd(cd)
+  setwd("computational_model")
   for (j in 1:participants){
     
     sim<-simulation_function(T = trials, mu = mu, alpha = alphas[j],
@@ -190,29 +193,29 @@ for (f in 1:3){
   
   setwd(cd)
   
-  files_1<-selPhase(1, "exp1")
+  files_1<-selPhase(1, setup)
   setwd(cd)
-  
-  files_2<-selPhase(2, "exp1")
+
+  files_2<-selPhase(2, setup)
   setwd(cd)
-  
-  # merge the two
-  files<-rbind(files_1, files_2)
-  
-  exclusionfiles<-NA
-  
-  # exclude participants
-  counter<-1
-  for (h in 1:length(files)){
-    curfile<-files[h]
-    # substring the name
-    subfile<-substr(curfile, 5,6)
-    # check if it is equal to any number
-    if (any(exclusions==subfile)){
-      exclusionfiles[counter] <-files[h]
-      counter<-counter+1
-    }
-  }
+  # 
+  # # merge the two
+  # files<-rbind(files_1, files_2)
+  # 
+  # exclusionfiles<-NA
+  # 
+  # # exclude participants
+  # counter<-1
+  # for (h in 1:length(files)){
+  #   curfile<-files[h]
+  #   # substring the name
+  #   subfile<-substr(curfile, 5,6)
+  #   # check if it is equal to any number
+  #   if (any(exclusions==subfile)){
+  #     exclusionfiles[counter] <-files[h]
+  #     counter<-counter+1
+  #   }
+  # }
   
   partAll<-vector()
   # list participants
@@ -344,7 +347,7 @@ for (f in 1:3){
   # the following analysis of the learning rate 
   # is not possible for the dLR_instrumental model, since it does not 
   # estimate an alpha per participant
-  if (files1[f]!= "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.dLR_Instr.csv"  &
+  if (files1[f]!= "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.dLR_Instr.csv"   | 
       files1[f]!= "ParameterEstimation.exp2.betalimit=10.initialQ=0.5.dLR_Instr.csv"
       ){
   # select oly strong prior condition
@@ -391,7 +394,7 @@ for (f in 1:3){
   # 
   dfSummarised$bin<-as.factor( dfSummarised$bin)
   
-  
+
   ggplot(dfSummarised[dfSummarised$earlyVsLate!="middle",], aes(x = bin , y =mean)) +
     geom_bar(aes(bin, mean, fill = bin),
              position="dodge",stat="summary", fun.y="mean", SE=T)+
@@ -407,6 +410,34 @@ for (f in 1:3){
     ylab("Cumulative Accuracy")
   
   ggsave(paste0("computational_model/figures/bin.plot.",setup,".jpg"))
+  
+  expname<-ifelse(setup == "exp1", "Experiment 1", "Experiment 2")
+  # all together, without distinction early vs late
+  ggplot(dfSummarised[dfSummarised$earlyVsLate!="middle",], aes(x = bin , y =mean)) +
+    geom_bar(aes(bin, mean, fill = bin),
+             position="dodge",stat="summary", fun.y="mean", SE=T)+
+    #geom_errorbar(aes(y = mean, ymin = mean - se, ymax = mean + se),
+    #             color = "black", width = 0.10, data=dfSE[dfSE$earlyVsLate!="middle",],)+
+    #stat_summary(fun="mean",geom="line")+
+    stat_summary(fun.data = "mean_se", size = 0.8, geom="errorbar", width=0.2 )+
+    
+    #geom_line(stat="summary")+
+    theme_bw()+
+    facet_grid(.~type)+
+    scale_fill_viridis_d()+
+    theme(
+      plot.title = element_text(size = 22),
+      axis.title.x = element_text(size = 20),
+      axis.title.y = element_text(size = 20),
+      axis.text=element_text(size=20)
+    )+
+    theme(strip.text.x = element_text(size = 22))+
+    ggtitle(expname)+
+    theme(plot.title = element_text(hjust = 0.5))+
+    ylab("Cumulative Accuracy")
+  
+  ggsave(paste0("computational_model/figures/bin.plot.all.",setup,".jpg"))
+  
   
   # analyse
   modBinsEarly<-lm(mean~bin, data = dfSummarised[dfSummarised$earlyVsLate=="Early",])
@@ -425,12 +456,15 @@ for (f in 1:3){
     geom_density()        
   }
   
+  expname<-ifelse(setup == "exp1", "Experiment 1", "Experiment 2")
+  
+  
   if (setup =="exp1"){
   # get the standard error and cumulative accuracy for simALL
   Datawidesim<- simAll %>%
     group_by( trialNbyscene) %>%
     dplyr::summarise(mean = mean(cumAccbyScene), sd = sd(cumAccbyScene)) %>%
-    mutate(type ="simulated" )
+    mutate(type ="Simulated" )
   
   # get se
   Datawidesim$se<-Datawidesim$sd/sqrt(participants)
@@ -439,7 +473,7 @@ for (f in 1:3){
   Datawidepart<- partAll %>%
     group_by( trialNbyscene) %>%
     dplyr::summarise(mean = mean(cumAccbyScene), sd = sd(cumAccbyScene)) %>%
-    mutate(type ="actual" )
+    mutate(type ="Actual" )
   
   # get se
   Datawidepart$se<-Datawidepart$sd/sqrt(participants)
@@ -450,13 +484,28 @@ for (f in 1:3){
   # get se
   Datawidepart$se<-Datawidepart$sd/sqrt(participants)
   # now collapsed across participants and scenes together
+  Datawide$Type<-Datawide$type
   print(
-    ggplot(Datawide, aes(x = trialNbyscene, y=mean, color = type, fill=type))+   
+    ggplot(Datawide, aes(x = trialNbyscene, y=mean, color = Type, fill=Type))+   
       stat_summary(fun.y="mean",geom="line")+ylim(c(0,1))+
       geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2, colour=NA)+
       #geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2)+
       theme_light()+
       ylab("Cumulative Accuracy")+
+      xlab("Trial Number by Condition")+
+      
+      theme(
+        plot.title = element_text(size = 22),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        axis.text=element_text(size=20)
+      )+
+      theme(strip.text.x = element_text(size = 22))+
+      theme(legend.text=element_text(size=22))+
+      
+      ggtitle(expname)+
+      theme(plot.title = element_text(hjust = 0.5))+
+      
       scale_color_viridis(discrete=TRUE, option = "inferno")
     
 
@@ -466,7 +515,7 @@ for (f in 1:3){
   Datawidesim<- simAll %>%
     group_by( trialNbyscene, scn_condition) %>%
     dplyr::summarise(mean = mean(cumAccbyScene), sd = sd(cumAccbyScene)) %>%
-    mutate(type ="simulated" )
+    mutate(type ="Simulated" )
   
   # get se
   Datawidesim$se<-Datawidesim$sd/sqrt(participants)
@@ -475,7 +524,7 @@ for (f in 1:3){
   Datawidepart<- partAll %>%
     group_by( trialNbyscene,scn_condition) %>%
     dplyr::summarise(mean = mean(cumAccbyScene), sd = sd(cumAccbyScene)) %>%
-    mutate(type ="actual" )
+    mutate(type ="Actual" )
   
   # get se
   Datawidepart$se<-Datawidepart$sd/sqrt(participants)
@@ -484,15 +533,32 @@ for (f in 1:3){
   Datawide<-rbind(Datawidesim, Datawidepart)
   
   Datawide$scn_condition<-as.factor(Datawide$scn_condition)
-  levels(Datawide$scn_condition)<-c("Weak Prior","Strong Prior")
+  levels(Datawide$scn_condition)<-c("0.70","0.90")
+  Datawide$Type<-Datawide$type
   # now collapsed across participants and scenes together
   print(
-    ggplot(Datawide, aes(x = trialNbyscene, y=mean, color = type, fill=type))+   
+    ggplot(Datawide, aes(x = trialNbyscene, y=mean, color = Type, fill=Type))+   
       stat_summary(fun.y="mean",geom="line")+ylim(c(0,1))+
       geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2,colour=NA)+
       theme_light()+
       facet_wrap(scn_condition~.)+
       ylab("Cumulative Accuracy")+
+      xlab("Trial Number by Condition")+
+      theme(
+        plot.title = element_text(size = 22),
+        plot.subtitle = element_text(size = 20),
+        
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        axis.text=element_text(size=20)
+      )+
+      theme(strip.text.x = element_text(size = 22))+
+     theme(legend.text=element_text(size=22))+
+
+      labs(title = expname,
+           subtitle = "Contingency condition")+
+      theme(plot.title = element_text(hjust = 0.5),
+            plot.subtitle = element_text(hjust = 0.5))+
       scale_color_viridis(discrete=TRUE, option = "inferno")
     
     

@@ -19,6 +19,8 @@ library(dplyr)
 library(reshape2)
 library(lmerTest)
 library(car)
+library(data.table)
+
 
 # set current directory to the parent folder
 setwd(dirname(getwd()))
@@ -282,6 +284,33 @@ exp2$scn_condition<-as.character(exp2$scn_condition)
 
 #exp2$SubNum<-exp2$SubNum+max(unique(exp1$SubNum))
 
+# retrieve the learning rate
+
+# experiment 1
+# learning rate
+exp1lr<-fread(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp1/outputs/group_level/computational_model/", 
+                     "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.fLR_Instr.csv"))
+
+# select the first three rows
+exp1lr<-exp1lr[,1:3]
+
+# change the name of the variable indicating the participant
+names(exp1lr)[1]<-"SubNum"
+
+
+exp1<-merge(exp1, exp1lr, by = "SubNum")
+
+# exp 2
+exp2lr<-fread(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp2/outputs/group_level/computational_model/", 
+                     "ParameterEstimation.exp2.betalimit=10.initialQ=0.5.fLR_Instr.csv"))
+
+# select the first three rows
+exp2lr<-exp2lr[,1:3]
+# change the name of the variable indicating the participant
+names(exp2lr)[1]<-"SubNum"
+
+exp2<-merge(exp2, exp2lr, by = "SubNum")
+
 # add "2" in front of the subnum
 exp2$SubNum<-exp2$SubNum+200
 exp2<-exp2[, names(exp1)]
@@ -308,6 +337,57 @@ write.csv(allData, paste0(abs,"/fittedData_exp1-exp2_fLR_Instr.csv"))
 ### Analysis merged data
 ```{r}
 
+# plot merged data
+PEDistrExp<-ggplot(allData, aes(x= PE, fill="scn_condition"))
+plot2<-
+  PEDistrExp+geom_density(alpha=.4)+
+  #facet_grid( ~ scn_condition)+
+  #ggtitle("PE distribution, Experiment 1")
+  theme_bw()+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+  #annotate(geom="text",  label="b",size=8,family="serif")+
+  #guides(fill=guide_legend(title="Scene Condition"))+
+  scale_fill_viridis_d(name ="Contingencies",breaks =c("Flat", "Strong", "Weak"),
+                       labels=c("0.33/0.50","0.80/0.90","0.70"))
+  
+plot2
+ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_instr_distr.exp1.exp2.png"), 
+       width = 7, height = 7)
+
+# now without the contingencies
+PEDistrExpN<-ggplot(allData, aes(x= PE, fill = ""))
+
+  PEDistrExpN+
+    geom_histogram(aes(y = ..density..),
+                 colour = 1, fill = "white") +
+
+    geom_density(alpha=.4,show.legend = FALSE)+
+  #facet_grid( ~ scn_condition)+
+  #ggtitle("PE distribution, Experiment 1")
+  theme_bw()+
+        theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+    scale_fill_viridis_d()
+  
+  ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_instr_distrNOscene.exp1.exp2.png"), 
+       width = 7, height = 7)
+  #annotate(geom="text",  label="b",size=8,family="serif")+
+  #guides(fill=guide_legend(title="Scene Condition"))+
+  #scale_fill_discrete(name ="Contingencies",breaks =c("Flat", "Strong", "Weak"),
+   #                    labels=c("0.33/0.50","0.80/0.90","0.70"))
+
+#ylab("")+
+  #scale_fill_viridis_d()
+
 # plot it first
 print(
   ggplot(allData, aes( x=PE, y=id_acc))+
@@ -317,6 +397,14 @@ print(
     theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
     facet_grid(.~trial_acc)+
     theme_bw()+
+    theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=13),
+  )+
+  theme(strip.text.x = element_text(size = 22))+
+
     #ggtitle("Experiment 2")+
     theme(legend.position = "none")+
     ylab("p(Hit)")
@@ -324,16 +412,77 @@ print(
 
 # save it
 ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp1.exp2.png"), 
-       width = 7, height = 7)
+       width = 9, height = 9)
+
+
+
 
 # analyse
-PEbyAccAll<-glmer(id_acc~PE*trial_acc*session+(trial_acc*PE|SubNum), family= binomial, 
+PEbyAccAll<-glmer(id_acc~PE*trial_acc*alpha*exp+(trial_acc*PE|SubNum), family= binomial, 
                    data = allData,
                    control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
 summary(PEbyAccAll)
 
 Anova(PEbyAccAll, type = "III")
+
+# we need to center PE
+allData$PE.c <- scale(allData$PE, center=TRUE, scale=FALSE)
+
+allData$alpha.c <- scale(allData$alpha, center=TRUE, scale=FALSE)
+
+allData$exp.c <- ifelse(allData$exp == "Experiment1", -0.5, 0.5)
+
+allData$trial_acc.c <- ifelse(allData$trial_acc == "Incorrect", -0.5, 0.5)
+
+
+# plot it again
+print(
+  ggplot(allData, aes( x=PE.c, y=id_acc))+
+    geom_line(stat="smooth",method = "glm", formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(.~trial_acc)+
+    theme_bw()+
+    theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+    #ggtitle("Experiment 2")+
+    theme(legend.position = "none")+
+    ylab("p(Hit)")
+)
+
+PEbyAccAll.c<-glmer(id_acc~PE.c*trial_acc.c*alpha.c*exp.c+(trial_acc.c*PE.c|SubNum), family= binomial, 
+                   data = allData,
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccAll.c)
+
+# exponentiate the beta for OR
+betas<-as.data.frame(summary(PEbyAccAll.c)$coefficients)
+
+OR<-cbind(row.names(betas),exp(betas$Estimate))
+
+Anova(PEbyAccAll.c, type = "III")
+
+# get bootstrapped confidenceßß intervals
+#CI<-confint(PEbyAccAll.c, method=c("boot"), boot.type=c("norm"))
+# save the bootstrapped confidence intervals, as it it a very time consuming computation
+#save(CI, file = "CI.Rdata")
+# load the data
+load("CI.Rdata")
+
+# exponentiate them
+exp(CI)
+
+CI
+
+intervals(PEbyAccAll.c)
+
 
 # in the positive side
 PEbyAccAllPos<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
@@ -365,6 +514,12 @@ print(
     theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
     facet_grid(scn_condition~trial_acc+exp)+
     theme_bw()+
+    theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
     #ggtitle("Experiment 2")+
     theme(legend.position = "none")+
     ylab("p(Hit)")
@@ -465,7 +620,8 @@ gplotquant<-ggplot(data_agg, aes( x=bin, y=id_acc))+
   facet_wrap(trial_acc~.)+
   theme_bw()+
   ylab("% Hit")+
-  theme(legend.position = "none")
+  theme(legend.position = "none")+
+  scale_fill_viridis_d(option = "cividis")
 #scale_x_discrete(
 #  labels=c(as.character(round(quantile,2))) )
 

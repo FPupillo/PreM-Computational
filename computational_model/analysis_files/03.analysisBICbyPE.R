@@ -19,10 +19,10 @@ setwd("computational_model")
 expAll<-fread("output_files/fittedData_exp1-exp2_fLR_Instr.csv")
 
 # learning rate
-exp1lr<-fread(paste0("/Users/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp1/outputs/group_level/computational_model/", 
+exp1lr<-fread(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp1/outputs/group_level/computational_model/", 
                      "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.fLR_Instr.csv"))
 
-exp2lr<-fread(paste0("/Users/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp2/outputs/group_level/computational_model/", 
+exp2lr<-fread(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp2/outputs/group_level/computational_model/", 
                      "ParameterEstimation.exp2.betalimit=10.initialQ=0.5.fLR_Instr.csv"))
 #------------------Experiment1-------------------------------------------------#
 exp1<-expAll[expAll$exp=="Experiment1",]
@@ -48,7 +48,7 @@ medianBIC1<-median(exp1lr$BIC)
 hist(exp1lr$BIC)
 
 # create median split
-exp1All$high_low_BIC<-ifelse(exp1All$BIC<medianBIC1, "lowBIC", "HighBIC")
+#exp1All$high_low_BIC<-ifelse(exp1All$BIC<medianBIC1, "lowBIC", "HighBIC")
 
 
 
@@ -148,6 +148,8 @@ a<-lm(BICs ~ coeff)
 
 summary(a)
 
+cor.test(coeff, BICs)
+
 # ggplot
 # create a df
 df<-as.data.frame(cbind(coeff,BICs ))
@@ -157,6 +159,13 @@ ggplot(df, aes(x = coeff,y= BICs ))+
   theme_bw()+
   geom_smooth(method=lm, colour = "red")+
   xlab("PExPO coefficients")+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+  scale_x_continuous(breaks=c(-0.50,-0.25,0.00,  0.25))+
   ylab("BIC")
 
 # save

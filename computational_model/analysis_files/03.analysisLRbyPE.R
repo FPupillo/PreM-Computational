@@ -19,10 +19,10 @@ setwd("computational_model")
 expAll<-fread("output_files/fittedData_exp1-exp2_fLR_Instr.csv")
 
 # learning rate
-exp1lr<-fread(paste0("/Users/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp1/outputs/group_level/computational_model/", 
+exp1lr<-fread(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp1/outputs/group_level/computational_model/", 
                      "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.fLR_Instr.csv"))
 
-exp2lr<-fread(paste0("/Users/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp2/outputs/group_level/computational_model/", 
+exp2lr<-fread(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp2/outputs/group_level/computational_model/", 
                      "ParameterEstimation.exp2.betalimit=10.initialQ=0.5.fLR_Instr.csv"))
 #------------------Experiment1-------------------------------------------------#
 exp1<-expAll[expAll$exp=="Experiment1",]
@@ -99,7 +99,7 @@ Anova(PEbyLr2)
 
 #------------------Merge-------------------------------------------------#
 
-expAllLr<-rbind(exp1All, exp2All)
+expAllLr<-rbind(exp1All[, 1:12], exp2All)
 
 # analyse
 PEbyLrmerge<-glmer(id_acc~PE*trial_acc*alpha+(trial_acc*PE|SubNum), family= binomial, 
@@ -108,8 +108,6 @@ PEbyLrmerge<-glmer(id_acc~PE*trial_acc*alpha+(trial_acc*PE|SubNum), family= bino
 
 summary(PEbyLrmerge)
 Anova(PEbyLrmerge)
-
-
 
 # delete outlier
 expAllLr_noOut<-expAllLr[expAllLr$alpha<0.5, ]

@@ -121,10 +121,10 @@ for (j in 1:participants){
 if (exp=="exp1"){
   # get the scene condition by pe level
   partAll$scn_condition<-ifelse(partAll$pe_level==1  | partAll$pe_level==3, 
-                                 "strong", "flat")
+                                 "0.80", "0.33")
 } else{
-  partAll$scn_condition<-ifelse(partAll$scn_condition==1 , "flat", ifelse(
-    partAll$scn_condition==2, "weak", "strong"))
+  partAll$scn_condition<-ifelse(partAll$scn_condition==1 , "0.50", ifelse(
+    partAll$scn_condition==2, "0.70", "0.90"))
 }
 
 # select only the first 40 particiapnts (immediate)
@@ -140,6 +140,11 @@ Datawidepart$se<-Datawidepart$sd/sqrt(participants)
 # get label for plot
 label<-ifelse(exp=="exp1", "(a)", "(b)")
 
+# add a horizontal line representing chance level
+chance<-ifelse(exp=="exp1", 0.33, 0.5)
+
+expname<-ifelse(exp=="exp1", "Experiment 1", "Experiment 2")
+
 assign(paste0("plot", e),
 ggplot(Datawidepart, aes(x = trialNbyscene, y=mean, 
   color = scn_condition, fill = scn_condition))+  
@@ -148,9 +153,13 @@ ggplot(Datawidepart, aes(x = trialNbyscene, y=mean,
   theme_light()+
   xlab("Trial Number by Condition")+
   ylab("Cumulative Accuracy")+
+  ggtitle(expname)+
   #theme(legend.position = "none")+
-  guides(color=guide_legend(title="Scene Condition"), fill=guide_legend(title="Scene Condition") )+
+  theme(plot.title = element_text(hjust = 0.5))+
+  geom_hline(yintercept=chance, linetype = "dashed", colour = "black")+
+  guides(color=guide_legend(title="Contingency"), fill=guide_legend(title="Contingency") )+
   annotate(geom="text",  label=label,size=8,family="serif")+
+  
   scale_color_viridis(discrete=TRUE)
   
 
@@ -173,8 +182,12 @@ assign(paste0("plotID", e),
          xlab("Trial Number by Condition")+
          ylab("Cumulative Accuracy")+
          #annotate(geom="text",  label=label,size=8,family="serif")+
-         guides(color=guide_legend(title="Scene Condition"), fill=guide_legend(title="Scene Condition") )+
+         guides(color=guide_legend(title="Contingency"), fill=guide_legend(title="Contingency") )+
          facet_wrap(.~participant)+
+         ggtitle(expname)+
+         #theme(legend.position = "none")+
+         theme(plot.title = element_text(hjust = 0.5))+
+         geom_hline(yintercept=chance, linetype = "dashed", colour = "black")+
          scale_color_viridis(discrete=TRUE)
        
        
@@ -183,7 +196,7 @@ assign(paste0("plotID", e),
 
 }
 
-ggpubr::ggarrange( plot1, plot2, ncol=2, labels = c("a)", "b)"))
+ggpubr::ggarrange( plot1, plot2, ncol=2)
 
 ggsave(("computational_model/figures/cumAccbySceneAll.jpg"))
 

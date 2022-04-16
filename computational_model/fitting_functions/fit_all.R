@@ -25,11 +25,11 @@ fit_all<-function(data,alphaBound, betaBound,
   print("Fitting dLR_Instr")
   BIC[1]<-fit_dLR_Instr(data, betaBound, initialQ)[[3]]
   print("Fitting dfLR_Instr")
-  BIC[1]<-fit_dfLR_Instr(data, alphaBound, betaBound, initialQ)[[3]]
+  BIC[2]<-fit_dfLR_Instr(data, alphaBound, betaBound, initialQ)[[3]]
   print("Fitting fLR_Instr model")
-  BIC[2]<-fit_fLR_Instr(data,alphaBound, betaBound, initialQ )[[3]]
+  BIC[3]<-fit_fLR_Instr(data,alphaBound, betaBound, initialQ )[[3]]
   print("Fitting fLR_Eval model")
-  BIC[3]<-fit_fLR_Eval(data,alphaBound, betaBound, initialQ )[[3]]
+  BIC[4]<-fit_fLR_Eval(data,alphaBound, betaBound, initialQ )[[3]]
 
   # which model had the best fit?
   iBest<-as.numeric(BIC==min(BIC))

@@ -16,3 +16,9 @@
 
 ### 22/11/2021
 - computed new confusion matrix with beta plus 1. 
+
+### 28/02/2021
+- After talking with yee lee, It was clear that we need to add a model where the learning rate decreases, but it is still left as a free parameter and estimated at the participant level. I created the scripts for parameter recovery, model recovery, started them, and started the estimation of the parameters. 
+
+### 03/02/2022
+Rerun model recovery with the dfLRI model. The model rerun was beta plus 1, but in the ooutput folder is called model recovery. In case we want to go back to the three model comparison, use the "modelbetaplus1" files.

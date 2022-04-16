@@ -37,7 +37,7 @@ trials<-300
 Args<-commandArgs(trailingOnly = T)
 
 # for debugging purposes
-Args<-c(10, 1, 0.33, "exp1")
+#Args<-c(10, 1, 0.33, "exp1")
 
 # what are the contingencies?"
 mu<-getmu(Args[4])
@@ -114,7 +114,8 @@ dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
   est<-searchGlobal(data = sim, alphaBound = alphaBound, betaBound = betaBound, 
                     startPoints = startPoints, initialQ = initialQ, 
                     fittingfunction = fit_dfLR_Instr, model = "dfLR_Instr" )   # assign to the dataset
-  data<-c( betaran[j],est$beta, est$BIC)
+  
+  data<-c(  alpharan[j], est$alpha,betaran[j], est$beta, est$BIC)
   #progress bar
   setTxtProgressBar(prb, j) 
   

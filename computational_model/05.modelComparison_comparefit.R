@@ -27,7 +27,7 @@ Args<-commandArgs(trailingOnly = T)
 setup<-Args[1]
 
 # for debugging purposes
-setup<-c( "exp1")
+#setup<-c( "exp2")
 
 #setup<-ifelse(setup=="exp1", "pilot", "three")
 
@@ -80,7 +80,6 @@ setup<-c( "exp1")
   
   setwd(cd)
   
-  
   # if it is exp 2, we need only the first 40
   if (setup=="exp2"){
     BicAll<-BicAll[BicAll$PartNum<41,]
@@ -97,7 +96,7 @@ setup<-c( "exp1")
   library(reshape2)
   
   # Model of interest
- MoI<- c("dLR_Instr", "fLR_Instr", "fLR_Eval")
+  MoI<- c("dLR_Instr","dfLR_Instr", "fLR_Instr", "fLR_Eval")
   #BicAll<-BicAll[BicAll$model==MoI[1] | BicAll$model==MoI[2] 
                #  | BicAll$model==MoI[3],]
   
@@ -106,10 +105,11 @@ setup<-c( "exp1")
   BicAll_wideLL <- dcast(BicAll, PartNum ~ model, value.var=c("LogLikel"),
                          fun.aggregate =sum)
 
+  # print
+  write.csv(BicAll_wideLL,paste0("computational_model/output_files/TableBIC.bypart.", 
+                         setup, ".csv"))
   # find the best model for each participant according to BIC
   # (the model that minimize the BIC)
-
-  
   ggplot(BicAll, aes(x = model,y= BIC))+
     geom_bar(aes(model, BIC, fill = model),
              position="dodge",stat="summary", fun="mean", SE=T)+
@@ -211,7 +211,7 @@ setup<-c( "exp1")
   }
   
   # now long
-  BicAll_long<-melt(BicAll_wideBIC[, c(1, 5, 10)], id.vars = c("PartNum", "BestModel" ))
+  BicAll_long<-melt(BicAll_wideBIC[, c(1, 6, 11)], id.vars = c("PartNum", "BestModel" ))
   
   BicAll_long$value<-as.factor(BicAll_long$value)
   levels(BicAll_long$value)<-c("very strong", "strong", "positive", "weak")
@@ -221,8 +221,12 @@ setup<-c( "exp1")
   # reorder the levels (models)
   BicAll_long$BestModel<-factor(BicAll_long$BestModel, levels =MoI)
   
-  ggplot(BicAll_long[!is.na(BicAll_long$Evidence),], 
-         aes( x=BestModel, fill = Evidence)) + 
+  BicAll_long[!is.na(BicAll_long$Evidence),] %>%
+    mutate(BestModel = factor(BestModel, 
+                                  levels= rev(MoI))) %>%
+  
+  #ggplot(BicAll_long[!is.na(BicAll_long$Evidence),], 
+        ggplot( aes( x=BestModel, fill = Evidence)) + 
     geom_bar(position="stack", stat="count")+
     #scale_fill_grey()+
     ylab("Participants")+

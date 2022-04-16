@@ -15,14 +15,14 @@ library(gplots)
 library(hrbrthemes)
 
 # create an empty matrix
-mt<-as.data.frame(matrix(0, nrow = 3, ncol = 3))
+mt<-as.data.frame(matrix(0, nrow = 4, ncol = 4))
 
 
 # function that takes the arguments from the command line
 Args<-commandArgs(trailingOnly = T)
 # the only argument is setup
 setup<-Args[1]
-#setup<-"exp1"
+#setup<-"exp2"
 # now add all the files
 cd<-getwd()
 
@@ -30,13 +30,13 @@ setwd("computational_model/temp")
 # list files
 list<-list.files(pattern=paste0("^ModelRecovery.", setup, "."))
 # get names for the matrix
-names(mt)<-names(read.csv(list[1]))[2:4]
+names(mt)<-names(read.csv(list[1]))[2:5]
 rownames(mt)<-names(mt)
 
 # add the files
 for (i in 1:length(list)){
   mat<-read.csv(list[i])
-  mt<-mt+ (mat[,2:4])
+  mt<-mt+ (mat[,2:5])
 }
 
 setwd(cd)

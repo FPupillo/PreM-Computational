@@ -100,11 +100,11 @@ name<- paste("output_files/modelRecovery.",setup, ".",
              "betalimit=",  betalim,  
              ".initialQ=", initialQ[1,1] , sep="")
 
-data<-matrix(NA, nrow=3,ncol = 3)
+data<-matrix(NA, nrow=4,ncol = 4)
 
 df<-data.frame(data)
 
-models<-c("dLR_Instr", "fLR_Instr", "fLR_Eval")
+models<-c("dLR_Instr","dfLR_Instr",  "fLR_Instr", "fLR_Eval")
 names(df)<-models
 row.names(df)<-names(df)
 
