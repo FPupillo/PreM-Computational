@@ -56,8 +56,7 @@ sims<-100
 trials<-100
 
 # function that takes the arguments from the command line
-#Args<-commandArgs(trailingOnly = T)
-# for debugging purposes
+Args<-commandArgs(trailingOnly = T)
 betalim<-10
 
 # run it for the two experiments
@@ -121,7 +120,6 @@ registerDoParallel(cl)
 functions<-lsf.str()
 
 # loop through several simuolations
-#dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
 dat<-foreach (s=1:sims,.export=c(functions))  %dopar% {
 
   print(paste0("working on sim ", s))

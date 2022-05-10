@@ -104,7 +104,6 @@ trials<-20+80 # 20 for phase1 and 80 for phase2
 
 
 #set.seed(134657)
-#set.seed(13465791)
 # loop through the files
 
 # -----------------------------------------------------------------------------#
@@ -199,24 +198,6 @@ for (f in 1:4){
   files_2<-selPhase(2, setup)
   setwd(cd)
   # 
-  # # merge the two
-  # files<-rbind(files_1, files_2)
-  # 
-  # exclusionfiles<-NA
-  # 
-  # # exclude participants
-  # counter<-1
-  # for (h in 1:length(files)){
-  #   curfile<-files[h]
-  #   # substring the name
-  #   subfile<-substr(curfile, 5,6)
-  #   # check if it is equal to any number
-  #   if (any(exclusions==subfile)){
-  #     exclusionfiles[counter] <-files[h]
-  #     counter<-counter+1
-  #   }
-  # }
-  
   partAll<-vector()
   # list participants
   
@@ -380,17 +361,7 @@ for (f in 1:4){
     }
   }
   
-  # get within participant SE
-  # create id
-  # dfSummarised$ID<-rep(1:64, each = 3)
-  # library(Rmisc)
-  # dfSE <- summarySEwithin(dfSummarised,
-  #                          measurevar = "mean",
-  #                          withinvars = c("earlyVsLate"), 
-  #                          betweenvars = c("type", "bin"),
-  #                          idvar = "ID")
-  # # detach the package
-  # detach("package:Rmisc", unload=TRUE)
+
   # 
   dfSummarised$bin<-as.factor( dfSummarised$bin)
   
@@ -565,13 +536,10 @@ for (f in 1:4){
   )
 }
   
- 
-  
   ggsave(paste("computational_model/figures/SimulatedVsActual.exp=",setup,
                ".mod=", mod, ".png", sep="" ),
          width = 7, height = 7)
   
-
   # suspend for 20 seconds before printing,
   # to wait that all the graphs are printed
   dev.off()

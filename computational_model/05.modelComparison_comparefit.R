@@ -26,15 +26,6 @@ Args<-commandArgs(trailingOnly = T)
 # the only argument is setup
 setup<-Args[1]
 
-# for debugging purposes
-setup<-c( "exp2")
-
-#setup<-ifelse(setup=="exp1", "pilot", "three")
-
-#for (s in setups){
-# s<-setup 
-#  print(s)
-  
   # retrieve the different models
   setwd(paste0( setup,"/outputs/group_level/computational_model"))
   
@@ -86,8 +77,6 @@ setup<-c( "exp2")
   }
   
   # subset
-  
-  #BicAll<-BicAll[, c(1,6,7,8)]
   
   # Count for how many participants a precise model was the best fit
   # create two datasets = one for the LL and one for the BIC

@@ -18,11 +18,8 @@ fi
 
 echo initial Q = $initialQ
 
-models="dfLR_Instr"
+models="dfLR_Instr dLR_Instr fLR_Instr fLR_Eval"
 
-# models="dfLR_Instr dLR_Instr fLR_Instr fLR_Eval"
-
-# for single models
 for model in $models
 do
 echo working on $model
@@ -36,6 +33,6 @@ Rscript parameter_recovery/ParameterRecovery_$model.R 10 1 $initialQ $setup
 done
 
 # print the outputs
-#Rscript parameter_recovery/Print.ParameteRecovery.R $setup
+Rscript parameter_recovery/Print.ParameteRecovery.R $setup
 
 done

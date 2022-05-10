@@ -1,7 +1,7 @@
 #!/bin/bash
 # script to run parmeter estimation for different models
 
-setups="pilot priors flat three"
+setups="exp1 exp2"
 
 
 echo $pwd

@@ -8,8 +8,7 @@
 rm(list=ls())
 library(here)
 library(ggplot2)
-library(viridis)#
-#library(farver)
+library(viridis)
 library(reshape2)
 library(gplots)
 library(hrbrthemes)
@@ -22,7 +21,6 @@ mt<-as.data.frame(matrix(0, nrow = 4, ncol = 4))
 Args<-commandArgs(trailingOnly = T)
 # the only argument is setup
 setup<-Args[1]
-#setup<-"exp2"
 # now add all the files
 cd<-getwd()
 
