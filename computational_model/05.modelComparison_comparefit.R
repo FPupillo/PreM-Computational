@@ -27,7 +27,7 @@ Args<-commandArgs(trailingOnly = T)
 setup<-Args[1]
 
 # for debugging purposes
-#setup<-c( "exp2")
+setup<-c( "exp2")
 
 #setup<-ifelse(setup=="exp1", "pilot", "three")
 
@@ -177,6 +177,7 @@ setup<-Args[1]
   
   # create difference between the best model and the second best
   BicAll_wideBIC$BestModelBIC<-NA
+  
   BicAll_wideBIC$SecondBestModelBIC<-NA
   
   for (n in 1: nrow(BicAll_wideBIC)){
@@ -222,6 +223,9 @@ setup<-Args[1]
   # reorder the levels (models)
   BicAll_long$BestModel<-factor(BicAll_long$BestModel, levels =MoI)
   
+  # get the title
+  Title<-ifelse(setup=="exp1", "Experiment 1", "Experiment 2")
+  
   BicAll_long[!is.na(BicAll_long$Evidence),] %>%
     mutate(BestModel = factor(BestModel, 
                                   levels= rev(MoI))) %>%
@@ -240,6 +244,8 @@ setup<-Args[1]
       axis.text=element_text(size=20),
       axis.text.y = element_blank()
     )+
+    ggtitle(Title)+
+    theme(plot.title = element_text(hjust = 0.5))+
     scale_fill_viridis_d()
   
   

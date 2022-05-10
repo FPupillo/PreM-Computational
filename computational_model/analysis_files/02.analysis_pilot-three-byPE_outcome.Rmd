@@ -44,8 +44,8 @@ getwd()
 # get the files
 #abs<-abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
 
-#abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/computational_model/output_files/"
-abs<-"/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/computational_model/output_files/"
+abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/computational_model/output_files/"
+#abs<-"/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/computational_model/output_files/"
 
 exp1<-read.csv(paste(abs, "fittedData.exp1.Phase2.fLR_Instr.csv", sep=""))
 

@@ -159,7 +159,7 @@ gplot_exp1_pred<-ggplot(data_agg_exp1, aes( x=prediction_condition, y=rec_acc))+
   
   geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
                 color = "black", width = 0.10, data=dat_summary_exp1)+
-  facet_wrap(prediction_accuracy~.)+
+  #facet_wrap(prediction_accuracy~.)+
   theme_classic()+
   ylab("% Hit")+
   theme(legend.position = "none")+
@@ -175,8 +175,6 @@ gplot_exp1_pred<-ggplot(data_agg_exp1, aes( x=prediction_condition, y=rec_acc))+
   scale_fill_manual(values =   c("#117733", "#CC6677"))
 
   #scale_fill_viridis(discrete=TRUE, option = "magma") 
-
-
 
 gplot_exp1_pred
 
@@ -400,7 +398,7 @@ gplot_exp2_pred_acc
 # save it
 ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
               "PREMUP_computational/computational_model/figures/prediction_acc_exp2.png"), 
-       width = 9, height = 7)
+       width = 10, height = 7)
 
 
 #accuracy by prediction condition
