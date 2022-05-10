@@ -9,7 +9,7 @@ rm(list=ls())
 
 library(dplyr)
 library(ggplot2)
-library(here)
+#library(here)
 library(gridExtra) # for plotting
 library(viridis)#
 
@@ -122,9 +122,13 @@ if (exp=="exp1"){
   # get the scene condition by pe level
   partAll$scn_condition<-ifelse(partAll$pe_level==1  | partAll$pe_level==3, 
                                  "0.80", "0.33")
+  #values for the colors
+  values <-c("#CC6677","#117733")
 } else{
   partAll$scn_condition<-ifelse(partAll$scn_condition==1 , "0.50", ifelse(
     partAll$scn_condition==2, "0.70", "0.90"))
+  values <-c( "#AA4499" ,"#44AA99","#332288")
+             
 }
 
 # select only the first 40 particiapnts (immediate)
@@ -145,26 +149,41 @@ chance<-ifelse(exp=="exp1", 0.33, 0.5)
 
 expname<-ifelse(exp=="exp1", "Experiment 1", "Experiment 2")
 
-assign(paste0("plot", e),
+#assign(paste0("plot", e),
 ggplot(Datawidepart, aes(x = trialNbyscene, y=mean, 
-  color = scn_condition, fill = scn_condition))+  
-  stat_summary(fun.y="mean",geom="line")+ylim(c(0,1))+
-  geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2, colour=NA)+
-  theme_light()+
+  color = scn_condition, fill = scn_condition, linetype = scn_condition))+  
+  stat_summary(fun.y="mean",geom="line", size = 1.5)+ylim(c(0,1))+
+  geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.5, colour=NA)+
+  theme_classic()+
   xlab("Trial Number by Condition")+
   ylab("Cumulative Accuracy")+
   ggtitle(expname)+
   #theme(legend.position = "none")+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20),
+    legend.text=element_text(size=rel(1.5)),
+    legend.title = element_text(size=rel(2))
+  )+
   theme(plot.title = element_text(hjust = 0.5))+
+
   geom_hline(yintercept=chance, linetype = "dashed", colour = "black")+
-  guides(color=guide_legend(title="Contingency"), fill=guide_legend(title="Contingency") )+
-  annotate(geom="text",  label=label,size=8,family="serif")+
+  guides(color=guide_legend(title="Contingency"), fill=guide_legend(title="Contingency"), 
+                                linetype =guide_legend(title="Contingency") ) +
+  #annotate(geom="text",  label=label,size=8,family="serif")+
+  scale_color_manual(values = c(values))
   
-  scale_color_viridis(discrete=TRUE)
+  #scale_color_viridis(discrete=TRUE)
   
+ggsave(paste0("computational_model/figures/cumAccbyScene", exp, ".jpg"),
+       width = 7, height = 7)
 
 
-)
+
+
+#)
 
 # do the same by ID
 DatawidepartID<- partAll %>%
@@ -196,9 +215,9 @@ assign(paste0("plotID", e),
 
 }
 
-ggpubr::ggarrange( plot1, plot2, ncol=2)
+#ggpubr::ggarrange( plot1, plot2, ncol=1)
 
-ggsave(("computational_model/figures/cumAccbySceneAll.jpg"))
+#ggsave(("computational_model/figures/cumAccbySceneAll.jpg"))
 
 # plot the graphs by ID
 ggsave(filename = "computational_model/figures/cumAccbySceneExp1byID.jpg", 

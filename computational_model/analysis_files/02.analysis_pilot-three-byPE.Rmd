@@ -343,7 +343,7 @@ plot2<-
   PEDistrExp+geom_density(alpha=.4)+
   #facet_grid( ~ scn_condition)+
   #ggtitle("PE distribution, Experiment 1")
-  theme_bw()+
+  theme_classic()+
   theme(
     plot.title = element_text(size = 22),
     axis.title.x = element_text(size = 20),
@@ -369,7 +369,7 @@ PEDistrExpN<-ggplot(allData, aes(x= PE, fill = ""))
     geom_density(alpha=.4,show.legend = FALSE)+
   #facet_grid( ~ scn_condition)+
   #ggtitle("PE distribution, Experiment 1")
-  theme_bw()+
+  theme_classic()+
         theme(
     plot.title = element_text(size = 22),
     axis.title.x = element_text(size = 20),
@@ -396,7 +396,7 @@ print(
     geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
     theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
     facet_grid(.~trial_acc)+
-    theme_bw()+
+    theme_classic()+
     theme(
     plot.title = element_text(size = 22),
     axis.title.x = element_text(size = 20),
@@ -412,7 +412,7 @@ print(
 
 # save it
 ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp1.exp2.png"), 
-       width = 9, height = 9)
+       width = 7, height = 7)
 
 
 
@@ -444,7 +444,7 @@ print(
     geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
     theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
     facet_grid(.~trial_acc)+
-    theme_bw()+
+    theme_classic()+
     theme(
     plot.title = element_text(size = 22),
     axis.title.x = element_text(size = 20),
@@ -513,7 +513,7 @@ print(
     geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
     theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
     facet_grid(scn_condition~trial_acc+exp)+
-    theme_bw()+
+    theme_classic()+
     theme(
     plot.title = element_text(size = 22),
     axis.title.x = element_text(size = 20),
@@ -586,7 +586,7 @@ binnedData$bin<-(binnedData$quantile)
 # plot
 PlotBind<-ggplot(binnedData, aes(x= PE, fill=bin))
 print(
-  PlotBind+geom_density()+ facet_grid( trial_acc~ exp)+theme_bw()
+  PlotBind+geom_density()+ facet_grid( trial_acc~ exp)+theme_classic()
   
 )
 
@@ -618,7 +618,7 @@ gplotquant<-ggplot(data_agg, aes( x=bin, y=id_acc))+
   geom_errorbar(aes(y = id_acc, ymin = id_acc - se, ymax = id_acc + se),
                 color = "black", width = 0.10, data=dat_summary)+
   facet_wrap(trial_acc~.)+
-  theme_bw()+
+  theme_classic()+
   ylab("% Hit")+
   theme(legend.position = "none")+
   scale_fill_viridis_d(option = "cividis")

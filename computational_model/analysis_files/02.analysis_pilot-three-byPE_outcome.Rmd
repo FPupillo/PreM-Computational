@@ -187,119 +187,119 @@ ggpubr::ggarrange( plot1, plot2, ncol=2, labels = c("a)", "b)"))
 # PE obse -three
 
 # by participant
-ggplot(exp1, aes(x=PE))+ geom_histogram()+theme_bw()+
-  facet_wrap(.~SubNum)
+#ggplot(exp1, aes(x=PEchoice))+ geom_histogram()+theme_bw()+
+ # facet_wrap(.~SubNum)
 
 #ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PEdistr_fLR_instr_byID.exp1.png"))
 ## Saving 7 x 5 in image
 ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-ggplot(exp2, aes(x=PE))+ geom_histogram()+theme_bw()+
-  facet_wrap(.~SubNum)
+#ggplot(exp2, aes(x=PE))+ geom_histogram()+theme_bw()+
+ # facet_wrap(.~SubNum)
 
 #ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PEdistr_fLR_instr_byID.exp2.png"))
 
-PEdistrAccExp1<-ggplot(exp1, aes(x= PE, fill=PE_level))
-
-print(
-  PEdistrAccExp1+geom_histogram()+ facet_grid( trial_acc~ scn_condition)+ggtitle("PE observational distribution, Three")
-)
-
-PEdistrAccExp2<-ggplot(exp2, aes(x= PE, fill=scn_condition))
-
-print(
-  PEdistrAccExp2+geom_histogram()+ facet_grid( trial_acc~ scn_condition)+ggtitle("PE observational distribution, Three")
-)
-
-# first, analyse accuracy by 
-## PE by accuracy - pilot
-# plot
-exp1$trial_acc<-as.factor(exp1$trial_acc)
-
-levels(exp1$trial_acc)<-c("Incorrect", "Correct")                          
-
-print(
-  ggplot(exp1, aes( x=PE, y=id_acc))+
-    geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
-    aes(colour = factor(SubNum), alpha=0.3)+
-    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
-    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
-    facet_grid(.~trial_acc)+
-    theme_bw()+
-    ggtitle("Experiment 1")+
-    #annotate(geom="text",  label="a",size=8,family="serif")+
-    theme(legend.position = "none")+
-    ylab("p(Hit)")
-)
+# PEdistrAccExp1<-ggplot(exp1, aes(x= PE, fill=PE_level))
+# 
+# print(
+#   PEdistrAccExp1+geom_histogram()+ facet_grid( trial_acc~ scn_condition)+ggtitle("PE observational distribution, Three")
+# )
+# 
+# PEdistrAccExp2<-ggplot(exp2, aes(x= PE, fill=scn_condition))
+# 
+# print(
+#   PEdistrAccExp2+geom_histogram()+ facet_grid( trial_acc~ scn_condition)+ggtitle("PE observational distribution, Three")
+# )
+# 
+# # first, analyse accuracy by 
+# ## PE by accuracy - pilot
+# # plot
+# exp1$trial_acc<-as.factor(exp1$trial_acc)
+# 
+# levels(exp1$trial_acc)<-c("Incorrect", "Correct")                          
+# 
+# print(
+#   ggplot(exp1, aes( x=PE, y=id_acc))+
+#     geom_line(stat="smooth",method = "glm",  formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+#     aes(colour = factor(SubNum), alpha=0.3)+
+#     geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+#     theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+#     facet_grid(.~trial_acc)+
+#     theme_bw()+
+#     ggtitle("Experiment 1")+
+#     #annotate(geom="text",  label="a",size=8,family="serif")+
+#     theme(legend.position = "none")+
+#     ylab("p(Hit)")
+# )
 
 #ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp1.png")
      #  ,width = 7, height = 7)
 
 #ggsave("PEobsByAccFeedbAll.png")
 ## PE by accuracy - exp2
-exp2$trial_acc<-as.factor(exp2$trial_acc)
-
-levels(exp2$trial_acc)<-c("Incorrect", "Correct")   
-
-print(
-  ggplot(exp2, aes( x=PE, y=id_acc))+
-    geom_line(stat="smooth",method = "glm", formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
-    aes(colour = factor(SubNum), alpha=0.3)+
-    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
-    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
-    facet_grid(.~trial_acc)+
-    theme_bw()+
-    ggtitle("Experiment 2")+
-    theme(legend.position = "none")+
-    ylab("p(Hit)")
-)
-
-#ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp2.png"), 
-       #width = 7, height = 7)
-
-# analyse
-PEbyAccExp1<-glmer(id_acc~PE*trial_acc+(trial_acc*PE|SubNum), family= binomial, 
-                   data = exp1,
-                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(PEbyAccExp1)
-Anova(PEbyAccExp1)
-
-# in the positive side
-PEbyAccExp1Pos<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
-                      data = exp1[exp1$trial_acc=="Correct",],
-                      control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(PEbyAccExp1Pos)
-
-# in the negative side
-PEbyAccExp1Neg<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
-                      data = exp1[exp1$trial_acc=="Incorrect",],
-                      control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(PEbyAccExp1Neg)
-
-# analyse
-PEbyAccExp2<-glmer(id_acc~PE*trial_acc+(trial_acc*PE|SubNum), family= binomial, 
-                   data = exp2,
-                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(PEbyAccExp2)
-
-Anova(PEbyAccExp2)
-
-# in the positive side
-PEbyAccExp2Pos<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
-                      data = exp2[exp2$trial_acc=="Correct",],
-                      control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(PEbyAccExp2Pos)
-
-# in the negative side
-PEbyAccExp2Neg<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
-                      data = exp2[exp2$trial_acc=="Incorrect",],
-                      control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(PEbyAccExp2Neg)
+# exp2$trial_acc<-as.factor(exp2$trial_acc)
+# 
+# levels(exp2$trial_acc)<-c("Incorrect", "Correct")   
+# 
+# print(
+#   ggplot(exp2, aes( x=PE, y=id_acc))+
+#     geom_line(stat="smooth",method = "glm", formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+#     aes(colour = factor(SubNum), alpha=0.3)+
+#     geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+#     theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+#     facet_grid(.~trial_acc)+
+#     theme_bw()+
+#     ggtitle("Experiment 2")+
+#     theme(legend.position = "none")+
+#     ylab("p(Hit)")
+# )
+# 
+# #ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp2.png"), 
+#        #width = 7, height = 7)
+# 
+# # analyse
+# PEbyAccExp1<-glmer(id_acc~PE*trial_acc+(trial_acc*PE|SubNum), family= binomial, 
+#                    data = exp1,
+#                    control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(PEbyAccExp1)
+# Anova(PEbyAccExp1)
+# 
+# # in the positive side
+# PEbyAccExp1Pos<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
+#                       data = exp1[exp1$trial_acc=="Correct",],
+#                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(PEbyAccExp1Pos)
+# 
+# # in the negative side
+# PEbyAccExp1Neg<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
+#                       data = exp1[exp1$trial_acc=="Incorrect",],
+#                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(PEbyAccExp1Neg)
+# 
+# # analyse
+# PEbyAccExp2<-glmer(id_acc~PE*trial_acc+(trial_acc*PE|SubNum), family= binomial, 
+#                    data = exp2,
+#                    control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(PEbyAccExp2)
+# 
+# Anova(PEbyAccExp2)
+# 
+# # in the positive side
+# PEbyAccExp2Pos<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
+#                       data = exp2[exp2$trial_acc=="Correct",],
+#                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(PEbyAccExp2Pos)
+# 
+# # in the negative side
+# PEbyAccExp2Neg<-glmer(id_acc~PE+(PE|SubNum), family= binomial, 
+#                       data = exp2[exp2$trial_acc=="Incorrect",],
+#                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(PEbyAccExp2Neg)
 ```
 
 
@@ -398,23 +398,23 @@ plot2
       # width = 7, height = 7)
 
 # now without the contingencies
-PEDistrExpN<-ggplot(allData, aes(x= PE, fill = ""))
-
-  PEDistrExpN+
-    geom_histogram(aes(y = ..density..),
-                 colour = 1, fill = "white") +
-
-    geom_density(alpha=.4,show.legend = FALSE)+
-  #facet_grid( ~ scn_condition)+
-  #ggtitle("PE distribution, Experiment 1")
-  theme_bw()+
-        theme(
-    plot.title = element_text(size = 22),
-    axis.title.x = element_text(size = 20),
-    axis.title.y = element_text(size = 20),
-    axis.text=element_text(size=20)
-  )+
-    scale_fill_viridis_d()
+# PEDistrExpN<-ggplot(allData, aes(x= PE, fill = ""))
+# 
+#   PEDistrExpN+
+#     geom_histogram(aes(y = ..density..),
+#                  colour = 1, fill = "white") +
+# 
+#     geom_density(alpha=.4,show.legend = FALSE)+
+#   #facet_grid( ~ scn_condition)+
+#   #ggtitle("PE distribution, Experiment 1")
+#   theme_bw()+
+#         theme(
+#     plot.title = element_text(size = 22),
+#     axis.title.x = element_text(size = 20),
+#     axis.title.y = element_text(size = 20),
+#     axis.text=element_text(size=20)
+#   )+
+#     scale_fill_viridis_d()
   
   #ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_instr_distrNOscene.exp1.exp2.png"), 
       #notate(geom="text",  label="b",size=8,family="serif")+
@@ -462,6 +462,7 @@ PEbyAccAll<-glmer(id_acc~PEchoice*alpha*exp+(PEchoice|SubNum), family= binomial,
 summary(PEbyAccAll)
 
 Anova(PEbyAccAll, type = "II")
+
 
 # we need to center PE
 allData$PEchoice.c <- scale(allData$PEchoice, center=TRUE, scale=FALSE)
@@ -523,14 +524,14 @@ intervals(PEbyAccAll.c)
 
 # in the positive side
 PEbyAccAllPos<-glmer(id_acc~PEchoice.c+(PEchoice.c|SubNum), family= binomial, 
-                      data = allData[allData$trial_acc=="Correct",],
+                      data = allData[allData$trial_acc==1,],
                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
 summary(PEbyAccAllPos)
 
 # in the negative side
 PEbyAccAllNeg<-glmer(id_acc~PEchoice.c+(PEchoice.c|SubNum), family= binomial, 
-                      data = allData[allData$trial_acc=="Incorrect",],
+                      data = allData[allData$trial_acc==0,],
                       control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
 summary(PEbyAccAllNeg)
@@ -561,6 +562,16 @@ print(
     theme(legend.position = "none")+
     ylab("p(Hit)")
 )
+
+# create absolute PE
+allData$absPEchoice.c<-abs(allData$PEchoice.c)
+
+# analyse abs 
+absPEchoice<-glmer(id_acc~absPEchoice.c+(absPEchoice.c|SubNum), family= binomial, 
+                   data = allData,
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(absPEchoice)
 
 ```
 

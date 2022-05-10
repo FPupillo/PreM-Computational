@@ -75,7 +75,7 @@ PlotBind+
   #geom_histogram(aes(y = ..density..),
      #            colour = c(1,2), fill = "white") +
   geom_density(alpha = .5)+
-  theme_bw()+
+  theme_classic()+
   geom_boxplot()+
   geom_vline(xintercept = thres)+
   theme(
@@ -92,7 +92,7 @@ PlotBind+
 
 
 # save it
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+ggsave(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/",
               "PREMUP_computational/computational_model/figures/dprime_exp1.png"), 
        width = 7, height = 7)
 
@@ -103,7 +103,7 @@ exp2<-fread("exp2/outputs/group_level/share/group_task-rec.csv")
 exp2 <- subset(x = exp2,
                subset = !is.na(exp2$participant.y),
                select = c("practice", "participant.y", "OvsN",  "id_acc", 
-                          "trial_acc", "PE_level", "fillers",  "session"))
+                          "trial_acc", "contingency", "fillers",  "session"))
 exp2$participant <- exp2$participant.y
 
 exp2$fillers[exp2$OvsN==2] <- 0
@@ -157,7 +157,7 @@ distr_all2<-rbind(null_distr2, exp2SDT)
 PlotBind2<-ggplot(distr_all2, aes(x= dprime, fill=type))
 
 #library(plyr)
-PlotBind2+geom_density(alpha = .5)+theme_bw()+geom_boxplot()+
+PlotBind2+geom_density(alpha = .5)+theme_classic()+geom_boxplot()+
   geom_vline(xintercept = thres2)+
   theme(
     plot.title = element_text(size = 22),
@@ -174,7 +174,7 @@ PlotBind2+geom_density(alpha = .5)+theme_bw()+geom_boxplot()+
   
 
 # save it
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+ggsave(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/",
               "PREMUP_computational/computational_model/figures/dprime_exp2.png"), 
        width = 7, height = 7)
 
@@ -189,11 +189,16 @@ exp2<-exp2[exp2$OvsN==1,]
 # create prediction strength
 #exp1$prediction_condition<-ifelse(exp1$contingency=="0,33", "Flat", "Strong")
 exp1$prediction_condition<-as.factor(exp1$contingency)
+exp1$prediction_condition2<- ifelse(exp1$prediction_condition=="0,33", "0.33", "0.20/0.80")
 levels(exp1$prediction_condition)<-c("0.2", "0.33", "0.8")
 #exp2$prediction_condition<-ifelse(exp2$PE_level=="0,5", "Flat", ifelse(exp2$PE_level=="0,7"
 #                                                             | exp2$PE_level == "0,3", "Weak", "Strong" ))
 
-exp2$prediction_condition<-as.factor(exp2$PE_level)
+exp2$prediction_condition<-as.factor(exp2$contingency)
+exp2$prediction_condition2<- ifelse(exp2$prediction_condition==0.50, "0.50", 
+                                    ifelse(exp2$prediction_condition==0.1 |exp2$prediction_condition==0.90, "0.10/0.90",
+                                           "0.30/0.70"))
+
 levels(exp2$prediction_condition)<-c("0.1", "0.3", "0.5", "0.7", "0.9")
 
 
@@ -201,17 +206,17 @@ levels(exp2$prediction_condition)<-c("0.1", "0.3", "0.5", "0.7", "0.9")
 #exp2$prediction_condition<-exp2$PE_level
 
 # we only need encoding accuracy and 
-VoI1<-c("participant", "prediction_condition", "enc_acc", "id_acc")
+VoI1<-c("participant", "prediction_condition", "prediction_condition2", "enc_acc", "id_acc")
 
 exp1<-exp1[, ..VoI1]
 
-names(exp1)[c(3,4)]<-c("prediction_accuracy", "recognition_accuracy")
+names(exp1)[c(4,5)]<-c("prediction_accuracy", "recognition_accuracy")
 
-VoI2<-c("participant", "prediction_condition", "trial_acc", "id_acc")
+VoI2<-c("participant", "prediction_condition", "prediction_condition2", "trial_acc", "id_acc")
 
 exp2<-exp2[, ..VoI2]
 
-names(exp2)[c(3,4)]<-c("prediction_accuracy", "recognition_accuracy")
+names(exp2)[c(4,5)]<-c("prediction_accuracy", "recognition_accuracy")
 
 # bind them
 exp2$participant<-exp2$participant+200
@@ -250,6 +255,11 @@ dat_summary_exp1 <- summarySEwithin(data_agg_exp1,
                                idvar = "participant")
 
 
+
+data_agg_exp1_acc$prediction_accuracy<-relevel(data_agg_exp1_acc$prediction_accuracy, 
+                                                    "Incorrect")
+
+
 gplot_exp1_pred<-ggplot(data_agg_exp1, aes( x=prediction_condition, y=rec_acc))+
   geom_bar(aes(prediction_condition, rec_acc, fill = prediction_condition),
            position="dodge",stat="summary", fun.y="mean", SE=F)+
@@ -258,7 +268,7 @@ gplot_exp1_pred<-ggplot(data_agg_exp1, aes( x=prediction_condition, y=rec_acc))+
   geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
                 color = "black", width = 0.10, data=dat_summary_exp1)+
   #facet_wrap(experiment~.)+
-  theme_bw()+
+  theme_classic()+
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
@@ -270,7 +280,9 @@ gplot_exp1_pred<-ggplot(data_agg_exp1, aes( x=prediction_condition, y=rec_acc))+
   xlab("Contingency")+
   ggtitle("Experiment 1")+
   theme(plot.title = element_text(hjust = 0.5))+
-  scale_fill_viridis(discrete=TRUE, option = "magma") 
+  scale_fill_manual(values =   c("#DDCC77", "#CC6677","#117733"))
+
+  #scale_fill_viridis(discrete=TRUE, option = "magma") 
 
 
 
@@ -293,7 +305,11 @@ Anova(modexp1_prediction)
 
 
 # accuracy now
-levels(data_agg_exp1_acc$prediction_accuracy)<-c("Incorrect", "Correct")
+
+
+
+data_agg_exp1_acc$prediction_accuracy<-ifelse(data_agg_exp1_acc$prediction_accuracy ==0, "Incorrect", 
+                                              "Correct")
 
 dat_summary_exp1_acc <- summarySEwithin(data_agg_exp1_acc,
                                         measurevar = "rec_acc",
@@ -341,6 +357,77 @@ summary(modexp1_acc)
 
 Anova(modexp1_acc)
 
+# accuracy by prediction outcome
+#levels(exp1$prediction_accuracy)<-c("Incorrect", "Correct")
+#exp1$prediction_accuracy<-ifelse(exp1$prediction_accuracy == 0, "Incorrect", "Correct")
+
+exp1$prediction_accuracy<-ifelse(exp1$prediction_accuracy==0, 
+                                                   "Incorrect", "Correct")
+exp1$prediction_accuracy<-factor(exp1$prediction_accuracy,
+                                                   ordered=F)
+
+
+exp1$prediction_accuracy<-relevel(exp1$prediction_accuracy, 
+                                                    "Incorrect")
+
+data_agg_exp1_pred_acc<-exp1 %>%
+  group_by(  prediction_accuracy, participant, prediction_condition) %>%
+  dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
+                   experiment = first(experiment))
+
+data_summary_exp1_pred_acc <- summarySEwithin(data_agg_exp1_pred_acc,
+                                        measurevar = "rec_acc",
+                                        withinvars = c( "prediction_accuracy",
+                                                        "prediction_condition"), 
+                                        idvar = "participant")
+
+
+
+gplot_exp1_pred_acc<-ggplot(data_agg_exp1_pred_acc, aes( x=prediction_condition, y=rec_acc))+
+  geom_bar(aes(prediction_condition, rec_acc, fill = prediction_condition),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  #geom_jitter(width = 0.20 )+
+  
+  geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                color = "black", width = 0.10, data=data_summary_exp1_pred_acc)+
+  #facet_wrap(experiment~.)+
+  theme_classic()+
+  ylab("% Hit")+
+  theme(legend.position = "none")+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+  theme(strip.text.x = element_text(size = 18))+
+  xlab("Contingency")+
+  ggtitle("Experiment 1")+
+  facet_wrap(.~prediction_accuracy)+
+  theme(plot.title = element_text(hjust = 0.5))+
+  scale_fill_manual(values =   c("#DDCC77", "#CC6677","#117733"))
+
+gplot_exp1_pred_acc
+
+# save it
+ggsave(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational/computational_model/figures/contingency_acc_exp1.png"), 
+       width = 7, height = 7)
+
+# analyse
+modexp1_pred_acc<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition+
+                          (prediction_accuracy*prediction_condition  | participant),
+                   family = binomial, data = exp1, glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp1_pred_acc)
+
+Anova(modexp1_pred_acc, type = "III")
+
+library(lsmeans)
+
+lsmeans(modexp1_pred_acc, pairwise~prediction_accuracy*prediction_condition, 
+        adjust = "bonferroni")
+
 #------------------------------------------------------------------------
 # accuracy by prediction
 data_agg_exp1_acc_pred<-exp1 %>%
@@ -354,10 +441,14 @@ dat_summary_exp1_acc_pred <- summarySEwithin(data_agg_exp1_acc_pred,
                                                                                 idvar = "participant")
 
 # rename the levels of prediction accuracy
-data_agg_exp1_acc_pred$prediction_accuracy<-as.factor(data_agg_exp1_acc_pred$prediction_accuracy)
-levels(data_agg_exp1_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+data_agg_exp1_acc_pred$prediction_accuracy<-factor(data_agg_exp1_acc_pred$prediction_accuracy,
+                                                      ordered= F)
 
-levels(dat_summary_exp1_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+#levels(data_agg_exp1_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+
+
+data_agg_exp1_pred_acc$prediction_accuracy<-relevel(data_agg_exp1_pred_acc$prediction_accuracy, 
+                                                    "Incorrect")
 
 gplot_exp1_pred_acc<-ggplot(data_agg_exp1_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
 geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
@@ -424,6 +515,9 @@ exp2<-exp2[!exp2$participant %in% exclPhase1exp2, ]
 
 ### aggregate
 # take the se within-participant
+exp2$prediction_accuracy<-ifelse(exp2$prediction_accuracy==0, "Incorrect",
+                                 "Correct")
+
 data_agg_exp2<-exp2 %>%
   group_by(prediction_condition, participant) %>%
   dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T),
@@ -436,19 +530,19 @@ data_agg_exp2_acc<-exp2 %>%
                    experiment = first(experiment))
 
 library(Rmisc)
-dat_summary_exp2<- summarySEwithin(data_agg_exp2,
+dat_summary_exp2_acc<- summarySEwithin(data_agg_exp2_acc,
                                     measurevar = "rec_acc",
-                                    withinvars = c("prediction_condition"), 
+                                    withinvars = c("prediction_accuracy"), 
                                     idvar = "participant")
 
 
 
-gplot_exp2_pred<-ggplot(data_agg_exp2, aes( x=prediction_condition, y=rec_acc))+
-  geom_bar(aes(prediction_condition, rec_acc, fill = prediction_condition),
+gplot_exp2_pred<-ggplot(data_agg_exp2_acc, aes( x=prediction_accuracy, y=rec_acc))+
+  geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
            position="dodge",stat="summary", fun.y="mean", SE=F)+
   
   geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
-                color = "black", width = 0.10, data=dat_summary_exp2)+
+                color = "black", width = 0.10, data=dat_summary_exp2_acc)+
   geom_jitter(width = 0.20 )+
   
   #facet_wrap(experiment~.)+
@@ -487,14 +581,14 @@ Anova(modexp2_prediction)
 library(lsmeans)
 
 # define contrasts
-
-
-
-lsmeans(modexp2_prediction, pairwise~prediction_condition)
+lsmeans(modexp2_prediction, pairwise~prediction_condition, adjust = 
+          "bonferroni")
 
 strVflat = c(-1,1,0)
 strVweak=c(-1,0,1)
+
 flatVweak = c(1, 0,1)
+
 
 contrasts(exp2$prediction_condition)<-cbind(strVflat,strVweak,flatVweak)
 modexp2_prediction<-glmer(recognition_accuracy~prediction_condition+(prediction_condition  | participant),
@@ -503,8 +597,9 @@ modexp2_prediction<-glmer(recognition_accuracy~prediction_condition+(prediction_
 summary(modexp2_prediction)
 
 # accuracy now
-
 levels(data_agg_exp2_acc$prediction_accuracy)<-c("Incorrect", "Correct")
+data_agg_exp2_acc$prediction_accuracy<-ifelse(data_agg_exp2_acc$prediction_accuracy ==0,
+                                              "Incorrect", "Correct")
 exp2$prediction_accuracy<-as.factor(exp2$prediction_accuracy)
 
 
@@ -548,7 +643,7 @@ ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
        width = 7, height = 7)
 
 #-------------------------------------------------------------------------
-# Prediction condition
+# Prediction condition and prediction acc
 dat_summary_exp1_acc_pred <- summarySEwithin(data_agg_exp1_acc_pred,
                                              measurevar = "rec_acc",
                                              withinvars = c( "prediction_accuracy", "prediction_condition"), 
@@ -592,6 +687,7 @@ summary(modexp2_acc)
 
 Anova(modexp2_acc)
 
+##---------------------------------------------------------
 # accuracy by prediction
 data_agg_exp2_acc_pred<-exp2 %>%
   group_by(  prediction_accuracy,prediction_condition,  participant) %>%
@@ -607,15 +703,13 @@ dat_summary_exp2_acc_pred <- summarySEwithin(data_agg_exp2_acc_pred,
 data_agg_exp2_acc_pred$prediction_accuracy<-as.factor(data_agg_exp2_acc_pred$prediction_accuracy)
 levels(data_agg_exp2_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
 
-levels(dat_summary_exp2_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
-
 gplot_exp2_pred_acc<-ggplot(data_agg_exp2_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
   geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
            position="dodge",stat="summary", fun.y="mean", SE=F)+
   
   geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
                 color = "black", width = 0.10, data=dat_summary_exp2_acc_pred)+
-  facet_wrap(prediction_condition~.)+
+  facet_wrap(prediction_accuracy~.)+
   theme_bw()+
   ylab("% Hit")+
   theme(legend.position = "none")+
@@ -699,3 +793,66 @@ modexp2_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_cond
 
 summary(modexp2_acc_pred)
 
+#accuracy by prediction condition
+data_agg_exp2_pred_acc<-exp2 %>%
+  group_by( prediction_accuracy, participant, prediction_condition) %>%
+  dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
+                   experiment = first(experiment))
+
+data_summary_exp2_pred_acc <- summarySEwithin(data_agg_exp2_pred_acc,
+                                              measurevar = "rec_acc",
+                                              withinvars = c( "prediction_accuracy",
+                                                              "prediction_condition"), 
+                                              idvar = "participant")
+
+#relevel accuracy
+
+data_agg_exp2_pred_acc$prediction_accuracy<-relevel(data_agg_exp2_pred_acc$prediction_accuracy, 
+                                                    "Incorrect")
+
+gplot_exp2_pred_acc<-ggplot(data_agg_exp2_pred_acc, aes( x=prediction_condition, y=rec_acc))+
+  geom_bar(aes(prediction_condition, rec_acc, fill = prediction_condition),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  #geom_jitter(width = 0.20, alpha = 0.3 )+
+  
+  geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                color = "black", width = 0.10, data=data_summary_exp2_pred_acc)+
+  #facet_wrap(experiment~.)+
+  theme_classic()+
+  ylab("% Hit")+
+  theme(legend.position = "none")+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+  xlab("Contingency")+
+  ggtitle("Experiment 2")+
+  facet_wrap(.~prediction_accuracy)+
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(strip.text.x = element_text(size = 18))+
+  scale_fill_manual(values =   c("#DDCC77","#88CCEE", "#AA4499","#44AA99","#332288"))
+
+gplot_exp2_pred_acc
+
+# save it
+ggsave(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational/computational_model/figures/contingency_acc_exp2.png"), 
+       width = 7, height = 7)
+
+# analyse
+modexp2_pred_acc<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition+
+                          (prediction_accuracy*prediction_condition  | participant),
+                        family = binomial, data = exp2, glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(modexp2_pred_acc)
+
+Anova(modexp2_pred_acc, type = "II")
+
+library(lsmeans)
+
+lsmeans(modexp2_pred_acc, pairwise~prediction_condition)
+
+lsmeans(modexp2_pred_acc, pairwise~prediction_accuracy*prediction_condition, 
+        adjust = "bonferroni")

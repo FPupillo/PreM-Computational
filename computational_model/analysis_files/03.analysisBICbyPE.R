@@ -60,7 +60,7 @@ print(
     geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
     theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
     facet_grid(.~high_low_BIC)+
-    theme_bw()+
+    theme_classic()+
     ggtitle("Experiment 1")+
     #annotate(geom="text",  label="a",size=8,family="serif")+
     theme(legend.position = "none")+
@@ -156,7 +156,7 @@ df<-as.data.frame(cbind(coeff,BICs ))
 
 ggplot(df, aes(x = coeff,y= BICs ))+
   geom_point()+
-  theme_bw()+
+  theme_classic()+
   geom_smooth(method=lm, colour = "red")+
   xlab("PExPO coefficients")+
   theme(
@@ -169,4 +169,6 @@ ggplot(df, aes(x = coeff,y= BICs ))+
   ylab("BIC")
 
 # save
-ggsave("figures/PExPO_BIC.jpg")
+ggsave("figures/PExPO_BIC.jpg", 
+       width = 7, height = 7)
+

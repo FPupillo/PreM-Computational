@@ -347,7 +347,7 @@ for (f in 1:4){
   # the following analysis of the learning rate 
   # is not possible for the dLR_instrumental model, since it does not 
   # estimate an alpha per participant
-  if (files1[f]!= "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.dLR_Instr.csv"   | 
+  if (files1[f]!= "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.dLR_Instr.csv"   & 
       files1[f]!= "ParameterEstimation.exp2.betalimit=10.initialQ=0.5.dLR_Instr.csv"
       ){
   # select oly strong prior condition
@@ -422,7 +422,7 @@ for (f in 1:4){
     stat_summary(fun.data = "mean_se", size = 0.8, geom="errorbar", width=0.2 )+
     
     #geom_line(stat="summary")+
-    theme_bw()+
+    theme_classic()+
     facet_grid(.~type)+
     scale_fill_viridis_d()+
     theme(
@@ -488,9 +488,9 @@ for (f in 1:4){
   print(
     ggplot(Datawide, aes(x = trialNbyscene, y=mean, color = Type, fill=Type))+   
       stat_summary(fun.y="mean",geom="line")+ylim(c(0,1))+
-      geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2, colour=NA)+
+      geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.4, colour=NA)+
       #geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2)+
-      theme_light()+
+      theme_classic()+
       ylab("Cumulative Accuracy")+
       xlab("Trial Number by Condition")+
       
@@ -506,7 +506,7 @@ for (f in 1:4){
       ggtitle(expname)+
       theme(plot.title = element_text(hjust = 0.5))+
       
-      scale_color_viridis(discrete=TRUE, option = "inferno")
+      scale_color_viridis(discrete=TRUE, option = "viridis")
     
 
   )
@@ -539,8 +539,8 @@ for (f in 1:4){
   print(
     ggplot(Datawide, aes(x = trialNbyscene, y=mean, color = Type, fill=Type))+   
       stat_summary(fun.y="mean",geom="line")+ylim(c(0,1))+
-      geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2,colour=NA)+
-      theme_light()+
+      geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.4,colour=NA)+
+      theme_classic()+
       facet_wrap(scn_condition~.)+
       ylab("Cumulative Accuracy")+
       xlab("Trial Number by Condition")+
@@ -568,7 +568,9 @@ for (f in 1:4){
  
   
   ggsave(paste("computational_model/figures/SimulatedVsActual.exp=",setup,
-               ".mod=", mod, ".png", sep="" ))
+               ".mod=", mod, ".png", sep="" ),
+         width = 7, height = 7)
+  
 
   # suspend for 20 seconds before printing,
   # to wait that all the graphs are printed

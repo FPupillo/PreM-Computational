@@ -106,8 +106,9 @@ setup<-Args[1]
                          fun.aggregate =sum)
 
   # print
-  write.csv(BicAll_wideLL,paste0("computational_model/output_files/TableBIC.bypart.", 
+  write.csv(BicAll_wideBIC,paste0("computational_model/output_files/TableBIC.bypart.", 
                          setup, ".csv"))
+  
   # find the best model for each participant according to BIC
   # (the model that minimize the BIC)
   ggplot(BicAll, aes(x = model,y= BIC))+
@@ -231,11 +232,20 @@ setup<-Args[1]
     #scale_fill_grey()+
     ylab("Participants")+
     coord_flip()+
-    theme_bw()+
+    theme_classic()+
+    theme(
+      plot.title = element_text(size = 22),
+      axis.title.x = element_text(size = 20),
+      axis.title.y = element_text(size = 20),
+      axis.text=element_text(size=20),
+      axis.text.y = element_blank()
+    )+
     scale_fill_viridis_d()
   
   
-  ggsave(paste("computational_model/figures/model_comparison_",setup, ".jpg", sep=""))
+  ggsave(paste("computational_model/figures/model_comparison_",setup, ".jpg", sep=""),
+         width = 9, height = 7)
+  
   
   print(# count best model
   Best<- BicAll_long %>%
