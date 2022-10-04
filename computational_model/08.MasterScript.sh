@@ -31,7 +31,7 @@ Rscript 03.plotConfusionMatrix.R $setup
 done
 
 # run Parameter estimation
-bash 04.runParameterRecovery.sh 
+bash 04.runParameterEstimation.sh 
 
 # now compare simulated vs empirical
 

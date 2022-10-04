@@ -44,7 +44,7 @@ getwd()
 # get the files
 #abs<-abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP/computational_model/output_files/"
 
-abs<-"/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/computational_model/output_files/"
+abs<-"/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/computational_model/output_files/"
 
 exp1<-read.csv(paste(abs, "fittedData.exp1.Phase2.fLR_Instr.csv", sep=""))
 
@@ -85,13 +85,16 @@ exp2<-exp2[!exp2$SubNum %in% exclPhase1exp2, ]
 ```{r}
 # select datasets 
 exp1<-getPE(exp1,3)
+
 exp2<-getPE(exp2, 2)
 
 
 # select the variables of interest
-VoI<-c("pe_level", "trialN", "rec_acc", "acc", "rec_session", "SubNum", "PE") 
+VoI<-c("pe_level", "trialN", "rec_acc", "acc", "rec_session", "SubNum", "PE",
+       "rec_Obj", "scene_cat") 
+
 exp1<-exp1[, VoI]
-names(exp1)[c(1,3,4,5)]<-c("PE_level",  "id_acc","trial_acc", "session")
+names(exp1)[c(1,3,4,5, 8, 9)]<-c("PE_level",  "id_acc","trial_acc", "session", "obj_file", "scn_cat")
 
 #exp2<-exp2[,VoI]
 # convert PE level as factor
@@ -143,7 +146,7 @@ print(plot2 )
 
 ggpubr::ggarrange( plot1, plot2, ncol=2, labels = c("a)", "b)"))
 
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures//PEdistr_fLR_instr.All.png"))
+# ggsave(paste0("/Users/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures//PEdistr_fLR_instr.All.png"))
 
 # now three
 # PE obse -three
@@ -152,13 +155,13 @@ ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PRE
 ggplot(exp1, aes(x=PE))+ geom_histogram()+theme_bw()+
   facet_wrap(.~SubNum)
 
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PEdistr_fLR_instr_byID.exp1.png"))
+# ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PEdistr_fLR_instr_byID.exp1.png"))
 ## Saving 7 x 5 in image
 ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 ggplot(exp2, aes(x=PE))+ geom_histogram()+theme_bw()+
   facet_wrap(.~SubNum)
 
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PEdistr_fLR_instr_byID.exp2.png"))
+# ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PEdistr_fLR_instr_byID.exp2.png"))
 
 PEdistrAccExp1<-ggplot(exp1, aes(x= PE, fill=PE_level))
 
@@ -193,8 +196,8 @@ print(
     ylab("p(Hit)")
 )
 
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp1.png")
-       ,width = 7, height = 7)
+# ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp1.png")
+#        ,width = 7, height = 7)
 
 #ggsave("PEobsByAccFeedbAll.png")
 ## PE by accuracy - exp2
@@ -215,8 +218,8 @@ print(
     ylab("p(Hit)")
 )
 
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp2.png"), 
-       width = 7, height = 7)
+# ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp2.png"), 
+#        width = 7, height = 7)
 
 # analyse
 PEbyAccExp1<-glmer(id_acc~PE*trial_acc+(trial_acc*PE|SubNum), family= binomial, 
@@ -288,7 +291,7 @@ exp2$scn_condition<-as.character(exp2$scn_condition)
 
 # experiment 1
 # learning rate
-exp1lr<-fread(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp1/outputs/group_level/computational_model/", 
+exp1lr<-fread(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp1/outputs/group_level/computational_model/", 
                      "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.fLR_Instr.csv"))
 
 # select the first three rows
@@ -301,7 +304,7 @@ names(exp1lr)[1]<-"SubNum"
 exp1<-merge(exp1, exp1lr, by = "SubNum")
 
 # exp 2
-exp2lr<-fread(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp2/outputs/group_level/computational_model/", 
+exp2lr<-fread(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/PREMUP_computational/exp2/outputs/group_level/computational_model/", 
                      "ParameterEstimation.exp2.betalimit=10.initialQ=0.5.fLR_Instr.csv"))
 
 # select the first three rows
@@ -356,8 +359,8 @@ plot2<-
                        labels=c("0.33/0.50","0.80/0.90","0.70"))
   
 plot2
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_instr_distr.exp1.exp2.png"), 
-       width = 7, height = 7)
+# ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_instr_distr.exp1.exp2.png"), 
+#        width = 7, height = 7)
 
 # now without the histogram
 PEDistrExpN<-ggplot(allData, aes(x= PE, fill = ""))
@@ -378,8 +381,8 @@ PEDistrExpN<-ggplot(allData, aes(x= PE, fill = ""))
   )+
     scale_fill_viridis_d()
   
-  ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_instr_distrNOscene.exp1.exp2.png"), 
-       width = 5, height = 5)
+  # ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_instr_distrNOscene.exp1.exp2.png"), 
+  #      width = 5, height = 5)
   #annotate(geom="text",  label="b",size=8,family="serif")+
   #guides(fill=guide_legend(title="Scene Condition"))+
   #scale_fill_discrete(name ="Contingencies",breaks =c("Flat", "Strong", "Weak"),
@@ -412,8 +415,8 @@ print(
 )
 
 # save it
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp1.exp2.png"), 
-       width = 7, height = 7)
+# ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/", "PREMUP_computational/computational_model/figures/PE_mem_fLR_instr.exp1.exp2.png"), 
+#        width = 7, height = 7)
 
 
 
@@ -527,6 +530,8 @@ print(
 )
 
 ```
+
+
 
 ### Analyse with quantiles
 ```{R}
@@ -680,3 +685,45 @@ PEquantPos<-lmer(id_acc~quantile+(1|SubNum),
 summary(PEquantPos)     
 
 ```
+
+
+# try the analysis suggested by reviewer two
+```{r}
+source("computational_model/helper_functions/get_number_subs_scenes.R")
+
+getwd()
+
+allData<-get_number_subs_scenes(allData)
+
+# create the model
+ ggplot(allData, aes( x=num_subs_scene, y=id_acc))+
+    geom_line(stat="smooth",method = "glm", formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
+    aes(colour = factor(SubNum), alpha=0.3)+
+    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
+    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
+    facet_grid(.~trial_acc)+
+    theme_classic()+
+    theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+    #ggtitle("Experiment 2")+
+    theme(legend.position = "none")+
+    ylab("p(Hit)")
+ 
+ ›# get the model
+ model_scenenum<-glmer(id_acc~num_subs_scene*trial_acc +(num_subs_scene*trial_acc|SubNum), 
+                       family = binomial, data = allData)
+
+summary(model_scenenum)
+
+Anova(model_scenenum)
+
+
+ model_scenenum<-glmer(id_acc~num_subs_scene*trial_acc +(num_subs_scene*trial_acc|SubNum), 
+                       family = binomial, data = allData)
+
+```
+

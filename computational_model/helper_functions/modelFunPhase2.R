@@ -24,36 +24,36 @@ getPar<-function(SubNum, datafile){
   return(list("alpha"=alpha, "beta"=beta))
 }
 
-getQsPhase1<-function(data, objlen){
-  # this function takes the estimated data from phase 1
-  # and return the last Qs by scene
-  # 
-  # Input:
-  #   data: long data with estimated values from phase 1
-  #   objleln: length of the obj categories (2,3)
-  # Output:
-  #   A dataframe with the Qs by scene
-  #----------------------
-  # we need a matrix that takes the last values of the Qs for each scene
+# getQsPhase1<-function(data, objlen){
+#   # this function takes the estimated data from phase 1
+#   # and return the last Qs by scene
+#   # 
+#   # Input:
+#   #   data: long data with estimated values from phase 1
+#   #   objleln: length of the obj categories (2,3)
+#   # Output:
+#   #   A dataframe with the Qs by scene
+#   #----------------------
+#   # we need a matrix that takes the last values of the Qs for each scene
+#   
+#   # initialize variables
+#   Qindex<-vector()
+#   
+#   for (i in 1:objlen){
+#     
+#   Qindex[i]<-paste("Q", i, sep="")
+#   
+#   }
   
-  # initialize variables
-  Qindex<-vector()
-  
-  for (i in 1:objlen){
-    
-  Qindex[i]<-paste("Q", i, sep="")
-  
-  }
-  
-  matrixQ<-matrix(NA, nrow = 6 ,ncol = objlen)
-  for (s in 1:6){
-    matrixQ[s,]<-unlist(tail(data[data$scene_cat==s,Qindex],1))
-  }
-  
-  matrixQ<-data.frame(matrixQ)
-  names(matrixQ)<-Qindex
-  return(matrixQ)
-}
+#   matrixQ<-matrix(NA, nrow = 6 ,ncol = objlen)
+#   for (s in 1:6){
+#     matrixQ[s,]<-unlist(tail(data[data$scene_cat==s,Qindex],1))
+#   }
+#   
+#   matrixQ<-data.frame(matrixQ)
+#   names(matrixQ)<-Qindex
+#   return(matrixQ)
+# }
 
 getQ_osPhase1<-function(data){
   # this function takes the estimated data from phase 1
