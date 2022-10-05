@@ -147,10 +147,9 @@ setup<-Args[1]
   for (j in 1: nrow(BicAll_wideBIC)){
     tryCatch({
      # index<-which(BicAll_wideBIC[j,]==min(BicAll_wideBIC[j,(2:(length(files)))], na.rm=T))
-      
-     
       index<-which(BicAll_wideBIC[j,]==min(BicAll_wideBIC[j,MoI]))
       index2<-which(BicAll_wideBIC[j,]==unlist(sort(BicAll_wideBIC[j,MoI])[2]))
+      
       if (length(index)>1) {# fi there are more than one model
         BicAll_wideBIC$BestModel[j]<-NA
         BicAll_wideBIC$SecondBest[j]<-NA
@@ -160,8 +159,9 @@ setup<-Args[1]
       BicAll_wideBIC$SecondBest[j]<-names(BicAll_wideBIC[index2])
       
       }
-    }, error = function(e) { print(paste("problem with number", j))}, 
-       warning = function(f) { print(paste("warning with number", j))}) 
+    }, error = function(e) { print(paste("problem with number", j))}
+      # warning = function(f) { print(paste("warning with number", j))}) 
+    )
   }
   
   # create difference between the best model and the second best
@@ -239,7 +239,7 @@ setup<-Args[1]
   
   
   ggsave(paste("computational_model/figures/model_comparison_",setup, ".jpg", sep=""),
-         width = 9, height = 7)
+         width = 12, height = 10)
   
   
   print(# count best model

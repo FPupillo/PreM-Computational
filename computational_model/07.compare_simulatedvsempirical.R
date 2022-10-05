@@ -8,7 +8,6 @@ rm(list=ls())
 
 library(dplyr)
 library(ggplot2)
-library(here)
 library(viridis)
 
 # retrieve functions
@@ -108,7 +107,7 @@ trials<-20+80 # 20 for phase1 and 80 for phase2
 
 # -----------------------------------------------------------------------------#
 # loop by model
-for (f in 1:4){
+for (f in 1){ 
   
   param<-read.csv(paste0(cd, "/", setup, 
                         "/outputs/group_level/computational_model/",
@@ -146,8 +145,8 @@ for (f in 1:4){
 
   # model name
   
-  mod<- ifelse(setup=="exp1", substr(files1[f], 53, nchar(files1[f])-4), 
-               substr(files1[f], 52, nchar(files1[f])-4))
+  mod<- ifelse(setup=="exp1", substr(files1[f], 62, nchar(files1[f])-4), 
+               substr(files1[f], 61, nchar(files1[f])-4))
   #mod<-"fLR_Instr"
   
   simulation_function<<-get(paste("simulate_", mod, sep=""))
@@ -538,7 +537,7 @@ for (f in 1:4){
   
   ggsave(paste("computational_model/figures/SimulatedVsActual.exp=",setup,
                ".mod=", mod, ".png", sep="" ),
-         width = 7, height = 7)
+         width = 12, height = 10)
   
   # suspend for 20 seconds before printing,
   # to wait that all the graphs are printed
