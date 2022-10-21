@@ -53,9 +53,9 @@ partAll<-vector()
 
 # INITIALIZE ALL THE PARAMETERS OF THE PLOTS
 # size of the title
-title_size=22
+title_size=30
 # size of the axes
-axes_size=20
+axes_size=28
 # size of the legend text
 legend_size=2
 

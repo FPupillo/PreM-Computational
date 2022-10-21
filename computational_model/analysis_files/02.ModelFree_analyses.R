@@ -11,7 +11,6 @@ library(viridis)
 library(lme4)
 library(car)
 library(ggplot2)
-library(psycho)
 
 # source the scripts
 source("computational_model/helper_functions/dprime_thres.R")
@@ -21,19 +20,6 @@ source("computational_model/helper_functions/discCalc.R")
 # load the data of the two experiments
 exp1<-fread("exp1/outputs/group_level/share/group_task-rec.csv")
 
-# INITIALIZE ALL THE PARAMETERS OF THE PLOTS
-# size of the title
-title_size=22
-# size of the axes
-axes_size=20
-# size of the legend text
-legend_size=2
-# width of the image
-img_width <- 10
-img_height<-10
-
-# path whwere to save the images
-img_path<-"computational_model/figures/"
 #------------------Experiment1-------------------------------------------------#
 # select only immediate
 exp1<-exp1[exp1$session==1,]
@@ -93,10 +79,10 @@ PlotBind+
   geom_boxplot()+
   geom_vline(xintercept = thres)+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size)
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
   )+
   xlab("d'")+
   theme(legend.position = "none")+
@@ -106,9 +92,9 @@ PlotBind+
 
 
 # save it
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+ggsave(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/",
               "PREMUP_computational/computational_model/figures/dprime_exp1.png"), 
-       width = 10, height = 10)
+       width = 7, height = 7)
 
 #------------------Experiment2-------------------------------------------------#
 exp2<-fread("exp2/outputs/group_level/share/group_task-rec.csv")
@@ -174,10 +160,10 @@ PlotBind2<-ggplot(distr_all2, aes(x= dprime, fill=type))
 PlotBind2+geom_density(alpha = .5)+theme_classic()+geom_boxplot()+
   geom_vline(xintercept = thres2)+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size)
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
   )+
   xlab("d'")+
   theme(legend.position = "none")+
@@ -188,7 +174,7 @@ PlotBind2+geom_density(alpha = .5)+theme_classic()+geom_boxplot()+
   
 
 # save it
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+ggsave(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/",
               "PREMUP_computational/computational_model/figures/dprime_exp2.png"), 
        width = 7, height = 7)
 
@@ -204,7 +190,7 @@ exp2<-exp2[exp2$OvsN==1,]
 #exp1$prediction_condition<-ifelse(exp1$contingency=="0,33", "Flat", "Strong")
 exp1$prediction_condition<-as.factor(exp1$contingency)
 exp1$prediction_condition2<- ifelse(exp1$prediction_condition=="0,33", "0.33", "0.20/0.80")
-levels(exp1$prediction_condition)<-c("0.2", "0.33", "0.8")
+levels(exp1$prediction_condition)<-c("0.20", "0.33", "0.80")
 #exp2$prediction_condition<-ifelse(exp2$PE_level=="0,5", "Flat", ifelse(exp2$PE_level=="0,7"
 #                                                             | exp2$PE_level == "0,3", "Weak", "Strong" ))
 
@@ -213,7 +199,7 @@ exp2$prediction_condition2<- ifelse(exp2$prediction_condition==0.50, "0.50",
                                     ifelse(exp2$prediction_condition==0.1 |exp2$prediction_condition==0.90, "0.10/0.90",
                                            "0.30/0.70"))
 
-levels(exp2$prediction_condition)<-c("0.1", "0.3", "0.5", "0.7", "0.9")
+levels(exp2$prediction_condition)<-c("0.10", "0.30", "0.50", "0.70", "0.90")
 
 
 #exp1$prediction_condition<-exp1$contingency
@@ -247,6 +233,7 @@ exclPhase1<-c(7 ,16, 19, 20, 23)
 
 exp1<-exp1[!exp1$participant %in% exclPhase1, ]
 
+
 ### aggregate
 # take the se within-participant
 data_agg_exp1<-exp1 %>%
@@ -269,11 +256,6 @@ dat_summary_exp1 <- summarySEwithin(data_agg_exp1,
 
 
 
-data_agg_exp1_acc$prediction_accuracy<-ifelse(data_agg_exp1_acc$prediction_accuracy==0, 
-                                              "Incorrect", "Correct")
-
-data_agg_exp1_acc$prediction_accuracy<-as.factor(data_agg_exp1_acc$prediction_accuracy)
-
 data_agg_exp1_acc$prediction_accuracy<-relevel(data_agg_exp1_acc$prediction_accuracy, 
                                                     "Incorrect")
 
@@ -290,10 +272,10 @@ gplot_exp1_pred<-ggplot(data_agg_exp1, aes( x=prediction_condition, y=rec_acc))+
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size)
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
   )+
   xlab("Contingency")+
   ggtitle("Experiment 1")+
@@ -307,8 +289,9 @@ gplot_exp1_pred<-ggplot(data_agg_exp1, aes( x=prediction_condition, y=rec_acc))+
 gplot_exp1_pred
 
 # save it
-ggsave(paste0(img_path, "prediction_cond_exp1.png"), 
-       width = img_width, height = img_height)
+ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational/computational_model/figures/prediction_cond_exp1.png"), 
+       width = 7, height = 7)
 
 
 # is that significant?
@@ -323,8 +306,10 @@ Anova(modexp1_prediction)
 
 # accuracy now
 
-# data_agg_exp1_acc$prediction_accuracy<-ifelse(data_agg_exp1_acc$prediction_accuracy ==0, "Incorrect", 
-#                                               "Correct")
+
+
+data_agg_exp1_acc$prediction_accuracy<-ifelse(data_agg_exp1_acc$prediction_accuracy ==0, "Incorrect", 
+                                              "Correct")
 
 dat_summary_exp1_acc <- summarySEwithin(data_agg_exp1_acc,
                                         measurevar = "rec_acc",
@@ -344,10 +329,10 @@ gplot_exp1_acc<-ggplot(data_agg_exp1_acc, aes( x=prediction_accuracy, y=rec_acc)
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size)
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
   )+
   ylim(0,1)+
   xlab("Prediction Outcome")+
@@ -362,7 +347,7 @@ gplot_exp1_acc
 # save it
 ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
               "PREMUP_computational/computational_model/figures/prediction_acc_exp1.png"), 
-       width = 10, height = 10)
+       width = 7, height = 7)
 
 # is that significant?
 modexp1_acc<-glmer(recognition_accuracy~prediction_accuracy+(prediction_accuracy  | participant),
@@ -410,12 +395,12 @@ gplot_exp1_pred_acc<-ggplot(data_agg_exp1_pred_acc, aes( x=prediction_condition,
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size)
+    plot.title = element_text(size = 30),
+    axis.title.x = element_text(size = 28),
+    axis.title.y = element_text(size = 28),
+    axis.text=element_text(size=28)
   )+
-  theme(strip.text.x = element_text(size = axes_size))+
+  theme(strip.text.x = element_text(size = 28))+
   xlab("Contingency")+
   ggtitle("Experiment 1")+
   facet_wrap(.~prediction_accuracy)+
@@ -425,8 +410,9 @@ gplot_exp1_pred_acc<-ggplot(data_agg_exp1_pred_acc, aes( x=prediction_condition,
 gplot_exp1_pred_acc
 
 # save it
-ggsave(paste0(img_path,"/contingency_acc_exp1.png"), 
-       width = img_width, height = img_height)
+ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational/computational_model/figures/contingency_acc_exp1.png"), 
+       width = 10, height = 10)
 
 # analyse
 modexp1_pred_acc<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition+
@@ -471,17 +457,17 @@ geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
  geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
                 color = "black", width = 0.10, data=dat_summary_exp1_acc_pred)+
   facet_wrap(prediction_condition~.)+
-  geom_jitter(width = 0.20, alpha=0.2 )+
+  geom_jitter(width = 0.20, alpha = 0.3 )+
   
   theme_classic()+
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size),
-    strip.text.x = element_text(size = axes_size)
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20),
+    strip.text.x = element_text(size = 20)
   )+
   ylim(0,1)+
   xlab("Prediction Condition")+
@@ -493,12 +479,13 @@ geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
 
 gplot_exp1_pred_acc
 
-ggsave(paste0(img_path, "contingency_acc_precition_exp1.png"), 
-       width = img_width+2, height = img_height)
+ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational_old/computational_model/figures/contingency_acc_precition_exp1.png"), 
+       width = 7, height = 7)
 
 # is that significant?
 exp1$prediction_accuracy<-as.factor(exp1$prediction_accuracy)
-#exp1$prediction_condition<-relevel(exp1$prediction_condition, ref = "Strong")
+exp1$prediction_condition<-relevel(exp1$prediction_condition, ref = "Strong")
 modexp1_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition
                         +(prediction_accuracy*prediction_condition  | participant),
                    family = binomial, data = exp1, 
@@ -508,34 +495,20 @@ summary(modexp1_acc_pred)
 
 Anova(modexp1_acc_pred)
 
-# change the reference
-
-exp1$prediction_condition<-relevel(exp1$prediction_condition, ref = "0.33")
-
 # break down the interaction
-modexp1_acc_pred_Correct<-glmer(recognition_accuracy~prediction_condition
-                        +(prediction_condition  | participant),
-                        family = binomial, data = exp1[exp1$prediction_accuracy=="Correct",], 
+modexp1_acc_pred_flat<-glmer(recognition_accuracy~prediction_accuracy
+                        +(prediction_accuracy  | participant),
+                        family = binomial, data = exp1[exp1$prediction_condition=="Flat",], 
                         control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
-summary(modexp1_acc_pred_Correct)
+summary(modexp1_acc_pred_flat)
 
-library(lsmeans)
+modexp1_acc_pred_strong<-glmer(recognition_accuracy~prediction_accuracy
+                             +(prediction_accuracy  | participant),
+                             family = binomial, data = exp1[exp1$prediction_condition=="Strong",], 
+                             control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
-# define contrasts
-lsmeans(modexp1_acc_pred_Correct, pairwise~prediction_condition, adjust = 
-          "bonferroni")
-
-modexp1_acc_pred_Incorrect<-glmer(recognition_accuracy~prediction_condition
-                                +(prediction_condition  | participant),
-                                family = binomial, data = exp1[exp1$prediction_accuracy=="Incorrect",], 
-                                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(modexp1_acc_pred_Incorrect)
-
-lsmeans(modexp1_acc_pred_Incorrect, pairwise~prediction_condition, adjust = 
-          "bonferroni")
-
+summary(modexp1_acc_pred_strong)
 
 #-----------------Experiment2------------------------------------------------#
 # exclude participants with low performance in phase1
@@ -580,10 +553,10 @@ gplot_exp2_pred<-ggplot(data_agg_exp2_acc, aes( x=prediction_accuracy, y=rec_acc
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size)
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
   )+
   xlab("Contingency")+
   ggtitle("Experiment 2")+
@@ -594,8 +567,9 @@ gplot_exp2_pred<-ggplot(data_agg_exp2_acc, aes( x=prediction_accuracy, y=rec_acc
 gplot_exp2_pred
 
 # save it
-ggsave(paste0(img_path, "/prediction_cond_exp2.png"), 
-       width = img_width, height = img_height)
+ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational/computational_model/figures/prediction_cond_exp2.png"), 
+       width = 7, height = 7)
 
 
 # is that significant?
@@ -653,10 +627,10 @@ gplot_exp2_acc<-ggplot(data_agg_exp2_acc, aes( x=prediction_accuracy, y=rec_acc)
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size)
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
   )+
   ylim(0,1)+
   xlab("Prediction Outcome")+
@@ -669,55 +643,42 @@ gplot_exp2_acc
 # save it
 ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
               "PREMUP_computational/computational_model/figures/prediction_acc_exp2.png"), 
-       width = 9, height = 7)
+       width = 7, height = 7)
 
 #-------------------------------------------------------------------------
 # Prediction condition and prediction acc
-
-# accuracy by prediction
-data_agg_exp2_acc_pred<-exp2 %>%
-  group_by(  prediction_accuracy,prediction_condition,  participant) %>%
-  dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
-                   experiment = first(experiment))
-
-dat_summary_exp2_acc_pred <- summarySEwithin(data_agg_exp2_acc_pred,
+dat_summary_exp1_acc_pred <- summarySEwithin(data_agg_exp1_acc_pred,
                                              measurevar = "rec_acc",
                                              withinvars = c( "prediction_accuracy", "prediction_condition"), 
                                              idvar = "participant")
-
-data_agg_exp2_acc_pred$prediction_accuracy<-as.factor(data_agg_exp2_acc_pred$prediction_accuracy)
-
-gplot_exp2_pred_acc<-ggplot(data_agg_exp2_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
+data_agg_exp1_acc_pred$prediction_accuracy<-as.factor(data_agg_exp1_acc_pred$prediction_accuracy)
+gplot_exp1_pred_acc<-ggplot(data_agg_exp1_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
   geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
            position="dodge",stat="summary", fun.y="mean", SE=F)+
-  theme_classic()+
   
   geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
-                color = "black", width = 0.10, data=dat_summary_exp2_acc_pred)+
-  facet_wrap(prediction_condition~., ncol = 5)+
-  geom_jitter(width = 0.20 , alpha=0.3)+
-  
+                color = "black", width = 0.10, data=dat_summary_exp1_acc_pred)+
+  facet_wrap(prediction_condition~.)+
+  theme_bw()+
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
     plot.title = element_text(size = 22),
     axis.title.x = element_text(size = 20),
     axis.title.y = element_text(size = 20),
-    axis.text=element_text(size=20),
-    strip.text.x = element_text(size = 20)
+    axis.text=element_text(size=20)
   )+
   xlab("Prediction Condition")+
   ylim(0,1)+
-  ggtitle("Experiment 2")+
+  ggtitle("Experiment 1")+
   theme(plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values =   c("#DDCC77", "#CC6677"))
+  scale_fill_viridis(discrete=TRUE, option = "magma") 
 
-gplot_exp2_pred_acc
+gplot_exp1_pred_acc
 
 
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
-              "PREMUP_computational/computational_model/figures/contingency_acc_precition_exp2.png"), 
-       width = 7, height = 7)
+gplot_exp2_acc
+
 
 
 
@@ -785,29 +746,21 @@ modexp2_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_cond
 
 summary(modexp2_acc_pred)
 
-Anova(modexp2_acc_pred)
-
 # break down the interaction
-odexp2_acc_pred_Correct<-glmer(recognition_accuracy~prediction_condition
-                            +(prediction_condition  | participant),
-                            family = binomial, data = exp2[exp2$prediction_accuracy=="Correct"], 
+odexp2_acc_pred_Weak<-glmer(recognition_accuracy~prediction_accuracy
+                            +(prediction_accuracy  | participant),
+                            family = binomial, data = exp2[exp2$prediction_condition=="Weak"], 
                             control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
-summary(odexp2_acc_pred_Correct)
+summary(odexp2_acc_pred_Weak)
 
-# define contrasts
-lsmeans(odexp2_acc_pred_Correct, pairwise~prediction_condition, adjust = 
-          "bonferroni")
 
-modexp2_acc_pred_Incorrect<-glmer(recognition_accuracy~prediction_condition
-                        +(prediction_condition  | participant),
-                        family = binomial, data = exp2[exp2$prediction_accuracy=="Incorrect"], 
+modexp2_acc_pred_Flat<-glmer(recognition_accuracy~prediction_accuracy
+                        +(prediction_accuracy  | participant),
+                        family = binomial, data = exp2[exp2$prediction_condition=="Flat"], 
                         control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
-summary(modexp2_acc_pred_Incorrect)
-
-lsmeans(modexp2_acc_pred_Incorrect, pairwise~prediction_condition, adjust = 
-          "bonferroni")
+summary(modexp2_acc_pred_Flat)
 
 modexp2_acc_pred_Strong<-glmer(recognition_accuracy~prediction_accuracy
                              +(prediction_accuracy  | participant),
@@ -863,7 +816,7 @@ data_agg_exp2_pred_acc$prediction_accuracy<-relevel(data_agg_exp2_pred_acc$predi
 gplot_exp2_pred_acc<-ggplot(data_agg_exp2_pred_acc, aes( x=prediction_condition, y=rec_acc))+
   geom_bar(aes(prediction_condition, rec_acc, fill = prediction_condition),
            position="dodge",stat="summary", fun.y="mean", SE=F)+
-  geom_jitter(width = 0.20, alpha = 0.2 )+
+  #geom_jitter(width = 0.20, alpha = 0.3 )+
   
   geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
                 color = "black", width = 0.10, data=data_summary_exp2_pred_acc)+
@@ -872,23 +825,24 @@ gplot_exp2_pred_acc<-ggplot(data_agg_exp2_pred_acc, aes( x=prediction_condition,
   ylab("% Hit")+
   theme(legend.position = "none")+
   theme(
-    plot.title = element_text(size = title_size),
-    axis.title.x = element_text(size = axes_size),
-    axis.title.y = element_text(size = axes_size),
-    axis.text=element_text(size=axes_size)
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
   )+
   xlab("Contingency")+
   ggtitle("Experiment 2")+
   facet_wrap(.~prediction_accuracy)+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme(strip.text.x = element_text(size = axes_size))+
+  theme(strip.text.x = element_text(size = 18))+
   scale_fill_manual(values =   c("#DDCC77","#88CCEE", "#AA4499","#44AA99","#332288"))
 
 gplot_exp2_pred_acc
 
 # save it
-ggsave(paste0(img_path,"/contingency_acc_exp2.png"), 
-       width = img_width, height = img_height)
+ggsave(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL/",
+              "PREMUP_computational/computational_model/figures/contingency_acc_exp2.png"), 
+       width = 7, height = 7)
 
 # analyse
 modexp2_pred_acc<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition+

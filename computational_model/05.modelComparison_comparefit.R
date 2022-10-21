@@ -215,23 +215,35 @@ setup<-Args[1]
   # get the title
   Title<-ifelse(setup=="exp1", "Experiment 1", "Experiment 2")
   
+  # strip the best model
+  BicAll_long$BestModel<-as.character(BicAll_long$BestModel)
+  BicAll_long$BestModel<-ifelse(BicAll_long$BestModel =="dLR_Instr", "dLRI", 
+            ifelse(BicAll_long$BestModel =="dfLR_Instr", "dfLRI", 
+                 ifelse(BicAll_long$BestModel =="fLR_Instr", "fLRI",
+                   "fLRE"))) 
+  
+  MoI2<- c("dLRI","dfLRI", "fLRI", "fLRE")
+  
   BicAll_long[!is.na(BicAll_long$Evidence),] %>%
     mutate(BestModel = factor(BestModel, 
-                                  levels= rev(MoI))) %>%
+                                  levels= rev(MoI2))) %>%
   
   #ggplot(BicAll_long[!is.na(BicAll_long$Evidence),], 
-        ggplot( aes( x=BestModel, fill = Evidence)) + 
+    ggplot( aes( x=BestModel, fill = Evidence)) + 
     geom_bar(position="stack", stat="count")+
     #scale_fill_grey()+
     ylab("Participants")+
     coord_flip()+
     theme_classic()+
     theme(
-      plot.title = element_text(size = 22),
-      axis.title.x = element_text(size = 20),
-      axis.title.y = element_text(size = 20),
-      axis.text=element_text(size=20),
-      axis.text.y = element_blank()
+      plot.title = element_text(size = 30),
+      axis.title.x = element_text(size = 28),
+      axis.title.y = element_text(size = 28),
+      axis.text=element_text(size=23),
+      legend.title = element_text(size=rel(2)), 
+      legend.text=element_text(size=rel(2)),
+      
+      #axis.text.y = element_blank()
     )+
     ggtitle(Title)+
     theme(plot.title = element_text(hjust = 0.5))+

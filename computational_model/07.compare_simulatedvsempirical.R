@@ -6,6 +6,8 @@
 
 rm(list=ls())
 
+set.seed(23466)
+
 library(dplyr)
 library(ggplot2)
 library(viridis)
@@ -107,7 +109,7 @@ trials<-20+80 # 20 for phase1 and 80 for phase2
 
 # -----------------------------------------------------------------------------#
 # loop by model
-for (f in 1){ 
+for (f in 6){ 
   
   param<-read.csv(paste0(cd, "/", setup, 
                         "/outputs/group_level/computational_model/",
@@ -145,8 +147,8 @@ for (f in 1){
 
   # model name
   
-  mod<- ifelse(setup=="exp1", substr(files1[f], 62, nchar(files1[f])-4), 
-               substr(files1[f], 61, nchar(files1[f])-4))
+  mod<- ifelse(setup=="exp1", substr(files1[f], 53, nchar(files1[f])-4), 
+               substr(files1[f], 52, nchar(files1[f])-4))
   #mod<-"fLR_Instr"
   
   simulation_function<<-get(paste("simulate_", mod, sep=""))
@@ -465,13 +467,13 @@ for (f in 1){
       xlab("Trial Number by Condition")+
       
       theme(
-        plot.title = element_text(size = 22),
-        axis.title.x = element_text(size = 20),
-        axis.title.y = element_text(size = 20),
-        axis.text=element_text(size=20)
+        plot.title = element_text(size = 30),
+        axis.title.x = element_text(size = 28),
+        axis.title.y = element_text(size = 28),
+        axis.text=element_text(size=23)
       )+
-      theme(strip.text.x = element_text(size = 22))+
-      theme(legend.text=element_text(size=22))+
+      theme(strip.text.x = element_text(size = 30))+
+      theme(legend.text=element_text(size=30))+
       
       ggtitle(expname)+
       theme(plot.title = element_text(hjust = 0.5))+
@@ -515,15 +517,17 @@ for (f in 1){
       ylab("Cumulative Accuracy")+
       xlab("Trial Number by Condition")+
       theme(
-        plot.title = element_text(size = 22),
-        plot.subtitle = element_text(size = 20),
+        plot.title = element_text(size = 30),
+        plot.subtitle = element_text(size = 28),
+        legend.title = element_text(size=rel(2)), 
+        axis.title.x = element_text(size = 28),
+        axis.title.y = element_text(size = 28),
+        axis.text=element_text(size=28),
+        strip.text.x = element_text(size=28)
         
-        axis.title.x = element_text(size = 20),
-        axis.title.y = element_text(size = 20),
-        axis.text=element_text(size=20)
       )+
-      theme(strip.text.x = element_text(size = 22))+
-     theme(legend.text=element_text(size=22))+
+      theme(strip.text.x = element_text(size = 30))+
+     theme(legend.text=element_text(size=30))+
 
       labs(title = expname,
            subtitle = "Contingency condition")+
