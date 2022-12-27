@@ -15,6 +15,7 @@ library(ggplot2)
 # source the scripts
 source("computational_model/helper_functions/dprime_thres.R")
 source("computational_model/helper_functions/discCalc.R")
+source("computational_model/helper_functions/getPredicted.R")
 
 
 # load the data of the two experiments
@@ -23,6 +24,9 @@ exp1<-fread("exp1/outputs/group_level/share/group_task-rec.csv")
 #------------------Experiment1-------------------------------------------------#
 # select only immediate
 exp1<-exp1[exp1$session==1,]
+
+# get predicted category
+exp1<-getPredicted(exp1, 1)
 
 # rename fillers for old (as they were NA)
 exp1$fillers[exp1$OvsN==2] <- 0
@@ -99,11 +103,16 @@ ggsave(paste0("/Users/francescopupillo/PowerFolders/Frankfurt_University/PIVOTAL
 #------------------Experiment2-------------------------------------------------#
 exp2<-fread("exp2/outputs/group_level/share/group_task-rec.csv")
 
+# get predicted category
+exp2<-getPredicted(exp2, 2)
+
 #The data file contains a lot of information that we will not need now.
 exp2 <- subset(x = exp2,
                subset = !is.na(exp2$participant.y),
                select = c("practice", "participant.y", "OvsN",  "id_acc", 
-                          "trial_acc", "contingency", "fillers",  "session"))
+                          "trial_acc", "contingency", "fillers",  "session",
+                          "predicted_category" , "predicted_contingency"))
+
 exp2$participant <- exp2$participant.y
 
 exp2$fillers[exp2$OvsN==2] <- 0
@@ -206,17 +215,17 @@ levels(exp2$prediction_condition)<-c("0.10", "0.30", "0.50", "0.70", "0.90")
 #exp2$prediction_condition<-exp2$PE_level
 
 # we only need encoding accuracy and 
-VoI1<-c("participant", "prediction_condition", "prediction_condition2", "enc_acc", "id_acc")
+VoI1<-c("participant", "predicted_contingency", "prediction_condition", "prediction_condition2", "enc_acc", "id_acc")
 
 exp1<-exp1[, ..VoI1]
 
-names(exp1)[c(4,5)]<-c("prediction_accuracy", "recognition_accuracy")
+names(exp1)[c(5,6)]<-c("prediction_accuracy", "recognition_accuracy")
 
-VoI2<-c("participant", "prediction_condition", "prediction_condition2", "trial_acc", "id_acc")
+VoI2<-c("participant", "predicted_contingency","prediction_condition", "prediction_condition2", "trial_acc", "id_acc")
 
 exp2<-exp2[, ..VoI2]
 
-names(exp2)[c(4,5)]<-c("prediction_accuracy", "recognition_accuracy")
+names(exp2)[c(5,6)]<-c("prediction_accuracy", "recognition_accuracy")
 
 # bind them
 exp2$participant<-exp2$participant+200
@@ -428,37 +437,109 @@ library(lsmeans)
 lsmeans(modexp1_pred_acc, pairwise~prediction_accuracy*prediction_condition, 
         adjust = "bonferroni")
 
-#------------------------------------------------------------------------
-# accuracy by prediction
-data_agg_exp1_acc_pred<-exp1 %>%
-  group_by(  prediction_accuracy,prediction_condition,  participant) %>%
+# #------------------------------------------------------------------------
+# # accuracy by prediction
+# data_agg_exp1_acc_pred<-exp1 %>%
+#   group_by(  prediction_accuracy,prediction_condition,  participant) %>%
+#   dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
+#                    experiment = first(experiment))
+# 
+# dat_summary_exp1_acc_pred <- summarySEwithin(data_agg_exp1_acc_pred,
+#                                         measurevar = "rec_acc",
+#                                         withinvars = c( "prediction_accuracy", "prediction_condition"), 
+#                                                                                 idvar = "participant")
+# 
+# # rename the levels of prediction accuracy
+# data_agg_exp1_acc_pred$prediction_accuracy<-factor(data_agg_exp1_acc_pred$prediction_accuracy,
+#                                                       ordered= F)
+# 
+# #levels(data_agg_exp1_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+# 
+# 
+# data_agg_exp1_pred_acc$prediction_accuracy<-relevel(data_agg_exp1_pred_acc$prediction_accuracy, 
+#                                                     "Incorrect")
+# 
+# gplot_exp1_pred_acc<-ggplot(data_agg_exp1_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
+# geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
+#          position="dodge",stat="summary", fun.y="mean", SE=F)+
+#   
+#  geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+#                 color = "black", width = 0.10, data=dat_summary_exp1_acc_pred)+
+#   facet_wrap(prediction_condition~.)+
+#   geom_jitter(width = 0.20, alpha = 0.3 )+
+#   
+#   theme_classic()+
+#   ylab("% Hit")+
+#   theme(legend.position = "none")+
+#   theme(
+#     plot.title = element_text(size = 22),
+#     axis.title.x = element_text(size = 20),
+#     axis.title.y = element_text(size = 20),
+#     axis.text=element_text(size=20),
+#     strip.text.x = element_text(size = 20)
+#   )+
+#   ylim(0,1)+
+#   xlab("Prediction Condition")+
+#   ggtitle("Experiment 1")+
+#   theme(plot.title = element_text(hjust = 0.5))+
+#   scale_fill_manual(values =   c("#DDCC77", "#CC6677"))
+# 
+#   #scale_fill_viridis(discrete=TRUE, option = "plasma") 
+# 
+# gplot_exp1_pred_acc
+# 
+# ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
+#               "PREMUP_computational_old/computational_model/figures/contingency_acc_precition_exp1.png"), 
+#        width = 7, height = 7)
+# 
+# # is that significant?
+# exp1$prediction_accuracy<-as.factor(exp1$prediction_accuracy)
+# exp1$prediction_condition<-relevel(exp1$prediction_condition, ref = "Strong")
+# modexp1_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition
+#                         +(prediction_accuracy*prediction_condition  | participant),
+#                    family = binomial, data = exp1, 
+#                    control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(modexp1_acc_pred)
+# 
+# Anova(modexp1_acc_pred)
+# 
+# # break down the interaction
+# modexp1_acc_pred_flat<-glmer(recognition_accuracy~prediction_accuracy
+#                         +(prediction_accuracy  | participant),
+#                         family = binomial, data = exp1[exp1$prediction_condition=="Flat",], 
+#                         control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(modexp1_acc_pred_flat)
+# 
+# modexp1_acc_pred_strong<-glmer(recognition_accuracy~prediction_accuracy
+#                              +(prediction_accuracy  | participant),
+#                              family = binomial, data = exp1[exp1$prediction_condition=="Strong",], 
+#                              control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+# 
+# summary(modexp1_acc_pred_strong)
+
+# as a function of predicted contingency
+data_agg_exp1_pred_cont<-exp1 %>%
+  group_by(  prediction_accuracy, participant, predicted_contingency) %>%
   dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
                    experiment = first(experiment))
 
-dat_summary_exp1_acc_pred <- summarySEwithin(data_agg_exp1_acc_pred,
-                                        measurevar = "rec_acc",
-                                        withinvars = c( "prediction_accuracy", "prediction_condition"), 
-                                                                                idvar = "participant")
-
-# rename the levels of prediction accuracy
-data_agg_exp1_acc_pred$prediction_accuracy<-factor(data_agg_exp1_acc_pred$prediction_accuracy,
-                                                      ordered= F)
-
-#levels(data_agg_exp1_acc_pred$prediction_accuracy)<-c("Incorrect", "Correct")
+data_summary_exp1_pred_cont<- summarySEwithin(data_agg_exp1_pred_cont,
+                                              measurevar = "rec_acc",
+                                              withinvars = c( "prediction_accuracy",
+                                                              "predicted_contingency"), 
+                                              idvar = "participant")
 
 
-data_agg_exp1_pred_acc$prediction_accuracy<-relevel(data_agg_exp1_pred_acc$prediction_accuracy, 
-                                                    "Incorrect")
-
-gplot_exp1_pred_acc<-ggplot(data_agg_exp1_acc_pred, aes( x=prediction_accuracy, y=rec_acc))+
-geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
-         position="dodge",stat="summary", fun.y="mean", SE=F)+
+gplot_exp1_pred_cont<-ggplot(data_agg_exp1_pred_cont, aes( x=predicted_contingency, y=rec_acc))+
+  geom_bar(aes(predicted_contingency, rec_acc, fill = predicted_contingency),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  #geom_jitter(width = 0.20, alpha = 0.40 )+
   
- geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
-                color = "black", width = 0.10, data=dat_summary_exp1_acc_pred)+
-  facet_wrap(prediction_condition~.)+
-  geom_jitter(width = 0.20, alpha = 0.3 )+
-  
+  geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                color = "black", width = 0.10, data=data_summary_exp1_pred_cont)+
+  #facet_wrap(experiment~.)+
   theme_classic()+
   ylab("% Hit")+
   theme(legend.position = "none")+
@@ -466,49 +547,18 @@ geom_bar(aes(prediction_accuracy, rec_acc, fill = prediction_accuracy),
     plot.title = element_text(size = 22),
     axis.title.x = element_text(size = 20),
     axis.title.y = element_text(size = 20),
-    axis.text=element_text(size=20),
-    strip.text.x = element_text(size = 20)
+    axis.text=element_text(size=20)
   )+
-  ylim(0,1)+
-  xlab("Prediction Condition")+
+  theme(strip.text.x = element_text(size = 18))+
+  xlab("Predicted Contingency")+
   ggtitle("Experiment 1")+
+  facet_wrap(.~prediction_accuracy)+
   theme(plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values =   c("#DDCC77", "#CC6677"))
+  scale_fill_manual(values =   c("#DDCC77", "#CC6677","#117733"))
 
-  #scale_fill_viridis(discrete=TRUE, option = "plasma") 
 
-gplot_exp1_pred_acc
+gplot_exp1_pred_cont
 
-ggsave(paste0("/home/francesco/PowerFolders/Frankfurt_University/PIVOTAL/",
-              "PREMUP_computational_old/computational_model/figures/contingency_acc_precition_exp1.png"), 
-       width = 7, height = 7)
-
-# is that significant?
-exp1$prediction_accuracy<-as.factor(exp1$prediction_accuracy)
-exp1$prediction_condition<-relevel(exp1$prediction_condition, ref = "Strong")
-modexp1_acc_pred<-glmer(recognition_accuracy~prediction_accuracy*prediction_condition
-                        +(prediction_accuracy*prediction_condition  | participant),
-                   family = binomial, data = exp1, 
-                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(modexp1_acc_pred)
-
-Anova(modexp1_acc_pred)
-
-# break down the interaction
-modexp1_acc_pred_flat<-glmer(recognition_accuracy~prediction_accuracy
-                        +(prediction_accuracy  | participant),
-                        family = binomial, data = exp1[exp1$prediction_condition=="Flat",], 
-                        control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(modexp1_acc_pred_flat)
-
-modexp1_acc_pred_strong<-glmer(recognition_accuracy~prediction_accuracy
-                             +(prediction_accuracy  | participant),
-                             family = binomial, data = exp1[exp1$prediction_condition=="Strong",], 
-                             control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(modexp1_acc_pred_strong)
 
 #-----------------Experiment2------------------------------------------------#
 # exclude participants with low performance in phase1
@@ -859,3 +909,47 @@ lsmeans(modexp2_pred_acc, pairwise~prediction_condition)
 
 lsmeans(modexp2_pred_acc, pairwise~prediction_accuracy*prediction_condition, 
         adjust = "bonferroni")
+
+# --------------- predicted category
+# as a function of predicted contingency
+data_agg_exp2_pred_cont<-exp2 %>%
+  group_by(  prediction_accuracy, participant, predicted_contingency) %>%
+  dplyr::summarise(rec_acc = mean(recognition_accuracy, na.rm = T), 
+                   experiment = first(experiment))
+
+data_summary_exp2_pred_cont<- summarySEwithin(data_agg_exp2_pred_cont,
+                                              measurevar = "rec_acc",
+                                              withinvars = c( "prediction_accuracy",
+                                                              "predicted_contingency"), 
+                                              idvar = "participant")
+
+
+gplot_exp2_pred_cont<-ggplot(data_agg_exp2_pred_cont, aes( x=predicted_contingency, y=rec_acc))+
+  geom_bar(aes(predicted_contingency, rec_acc, fill = predicted_contingency),
+           position="dodge",stat="summary", fun.y="mean", SE=F)+
+  #geom_jitter(width = 0.20, alpha = 0.40 )+
+  
+  geom_errorbar(aes(y = rec_acc, ymin = rec_acc - se, ymax = rec_acc + se),
+                color = "black", width = 0.10, data=data_summary_exp2_pred_cont)+
+  #facet_wrap(experiment~.)+
+  theme_classic()+
+  ylab("% Hit")+
+  theme(legend.position = "none")+
+  theme(
+    plot.title = element_text(size = 22),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text=element_text(size=20)
+  )+
+  theme(strip.text.x = element_text(size = 18))+
+  xlab("Predicted Contingency")+
+  ggtitle("Experiment 2")+
+  facet_wrap(.~prediction_accuracy)+
+  theme(plot.title = element_text(hjust = 0.5))+
+  scale_fill_manual(values =   c("#DDCC77","#88CCEE", "#AA4499","#44AA99","#332288"))
+
+#scale_fill_manual(values =   c("#117733", "#CC6677"))
+
+gplot_exp2_pred_cont
+
+
