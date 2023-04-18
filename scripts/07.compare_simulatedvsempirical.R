@@ -14,7 +14,7 @@ library(viridis)
 
 # retrieve functions
 cd<-getwd()
-setwd("computational_model")
+setwd("scripts")
 source(("helper_functions/BICcompute.R"))
 source(("helper_functions/searchGlobal.R"))
 source(("helper_functions/softmax.R"))
@@ -32,14 +32,14 @@ for (f in 1:length(simfun)){
 
 setwd(cd)
 # likelihood functions
-setwd(paste("computational_model/likelihood_functions",sep=""))
+setwd(paste("scripts/likelihood_functions",sep=""))
 likfun<-list.files()
 for (f in 1:length(likfun)){
   source(likfun[f])
 }
 
 # fitting functions
-setwd(paste(cd,"/computational_model/fitting_functions",sep=""))
+setwd(paste(cd,"/scripts/fitting_functions",sep=""))
 fitfun<-list.files()
 
 for (f in 1:length(fitfun)){
@@ -381,7 +381,7 @@ for (f in 6){
     scale_fill_viridis_d()+
     ylab("Cumulative Accuracy")
   
-  ggsave(paste0("computational_model/figures/bin.plot.",setup,".jpg"))
+  ggsave(paste0("scripts/figures/bin.plot.",setup,".jpg"))
   
   expname<-ifelse(setup == "exp1", "Experiment 1", "Experiment 2")
   # all together, without distinction early vs late
@@ -408,7 +408,7 @@ for (f in 6){
     theme(plot.title = element_text(hjust = 0.5))+
     ylab("Cumulative Accuracy")
   
-  ggsave(paste0("computational_model/figures/bin.plot.all.",setup,".jpg"))
+  ggsave(paste0("scripts/figures/bin.plot.all.",setup,".jpg"))
   
   
   # analyse
@@ -539,7 +539,7 @@ for (f in 6){
   )
 }
   
-  ggsave(paste("computational_model/figures/SimulatedVsActual.exp=",setup,
+  ggsave(paste("scripts/figures/SimulatedVsActual.exp=",setup,
                ".mod=", mod, ".png", sep="" ),
          width = 12, height = 10)
   

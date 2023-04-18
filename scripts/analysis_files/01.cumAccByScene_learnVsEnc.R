@@ -191,7 +191,7 @@ ggplot(Datawidepart, aes(x = trialNbyscene, y=mean,
   
   #scale_color_viridis(discrete=TRUE)
   
-ggsave(paste0("computational_model/figures/cumAccbyScene_byPhase", exp, ".jpg"),
+ggsave(paste0("scripts/figures/cumAccbyScene_byPhase", exp, ".jpg"),
        width = 12, height = 10)
 
 
@@ -231,13 +231,11 @@ assign(paste0("plotID", e),
 
 #ggpubr::ggarrange( plot1, plot2, ncol=1)
 
-#ggsave(("computational_model/figures/cumAccbySceneAll.jpg"))
-
 # plot the graphs by ID
-ggsave(filename = "computational_model/figures/cumAccbySceneExp1byID.jpg", 
+ggsave(filename = "scripts/figures/cumAccbySceneExp1byID.jpg", 
        plot=plotID1, 
        width = 10, height = 10)
-ggsave(filename = "computational_model/figures/cumAccbySceneExp2byID.jpg", 
+ggsave(filename = "scripts/figures/cumAccbySceneExp2byID.jpg", 
        plot=plotID2,
        width = 10, height = 10)
 

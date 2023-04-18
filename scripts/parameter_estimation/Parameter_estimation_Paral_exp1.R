@@ -4,7 +4,6 @@
 #------------------------------------------------------------------------------#
 # source the files with the function  
 rm(list=ls())
-library(here)
 library(foreach)
 library(doParallel)
 library(beepr)
@@ -14,29 +13,30 @@ setwd(dirname(getwd()))
 
 cd<-getwd()
 # source the files with the function
-source(("computational_model/helper_functions/BICcompute.R"))
-source(("computational_model/helper_functions/searchGlobal.R"))
-source(("computational_model/helper_functions/softmax.R"))
-source(("computational_model/helper_functions/getFiles.R"))
-source(("computational_model/helper_functions/modelFunPhase2.R"))
-source(("computational_model/helper_functions/getx.R"))
-source(("computational_model/helper_functions/getobs.R"))
-source(("computational_model/helper_functions/getU.R"))
-source(("computational_model/helper_functions/update.R"))
-source(("computational_model/helper_functions/getProbStrongWeak.R"))
-source(("computational_model/helper_functions/var_murphy.R"))
-source(("computational_model/helper_functions/getfeedb.R"))
+source(("scripts/helper_functions/BICcompute.R"))
+source(("scripts/helper_functions/searchGlobal.R"))
+source(("scripts/helper_functions/softmax.R"))
+source(("scripts/helper_functions/getFiles.R"))
+source(("scripts/helper_functions/modelFunPhase2.R"))
+source(("scripts/helper_functions/getx.R"))
+source(("scripts/helper_functions/getobs.R"))
+source(("scripts/helper_functions/getU.R"))
+source(("scripts/helper_functions/update.R"))
+source(("scripts/helper_functions/getProbStrongWeak.R"))
+source(("scripts/helper_functions/var_murphy.R"))
+source(("scripts/helper_functions/getfeedb.R"))
 
 setwd(cd)
+
 # likelihood functions
-setwd("computational_model/likelihood_functions")
+setwd("scripts/likelihood_functions")
 likfun<-list.files()
 for (f in 1:length(likfun)){
   source(likfun[f])
 }
 setwd(cd)
 # fitting functions
-setwd("computational_model/fitting_functions")
+setwd("scripts/fitting_functions")
 
 fitfun<-list.files()
 for (f in 1:length(fitfun)){
@@ -55,7 +55,6 @@ setwd(cd)
 phase2Files<-selPhase(phase = 2, experiment = "exp1")
 setwd(cd)
 
-
 Args<-commandArgs(trailingOnly = T) 
 # the arguments are : 
 #   1.starting point
@@ -63,9 +62,7 @@ Args<-commandArgs(trailingOnly = T)
 #   3.initial Q
 #   4.modeltype
 
-
-#Args<-c("y", 10 ,  0.33,"dLR_Instr")
-
+#Args<-c(1, 10 ,  0.33,"dLR_Instr")
 
 print(Args)
 
@@ -74,7 +71,6 @@ startPoints<-as.numeric(Args[1])
 
 # set boundaries for the optimization algorithm
 alphaBound<-c(0,1)
-
 
 # for the beta, take the 2 one from the command line
 if (Args[2]=="infinite"){
@@ -89,7 +85,7 @@ initialQ <- matrix(as.numeric(Args[3]), ncol=3, nrow=6)
 modeltype = Args[4]
 
 # create a name for the output file
-name<-paste("exp1/outputs/group_level/computational_model/ParameterEstimation.exp1.", 
+name<-paste("exp1/outputs/group_level/scripts/ParameterEstimation.exp1.", 
             "betalimit=",betaBound[2],".initialQ=",  Args[3], ".", modeltype, sep="")
 
 

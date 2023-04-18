@@ -23,7 +23,7 @@ fi
 echo initial Q = $initialQ
 
 # Run the Model Recovery
-Rscript 02.runModelRecoveryBetaPlus1.R 10 1 $initialQ $setup
+Rscript 02.runModelRecovery.R 10 1 $initialQ $setup
 
 # Plot the confusion Matrices
 Rscript 03.plotConfusionMatrix.R $setup
@@ -34,7 +34,6 @@ done
 bash 04.runParameterEstimation.sh 
 
 # now compare simulated vs empirical
-
 for setup in $setups
 do
 echo working on $setup

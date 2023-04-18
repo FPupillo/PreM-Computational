@@ -1,16 +1,47 @@
-Most scripts contained in this repository can be run in R. 
+Files and analysis scripts reported in the paper "The Effect of Prediction Error on Episodic Memory
+Encoding is modulated by the Outcome of the Predictions". 
+
+The scripts contained in this repository are written in bash and R languages. 
 Version used: R version 4.2.1 (2022-06-23).
 R is a free software that can be downloaded [here](https://cran.r-project.org/). 
-Some scripts are written in bash script. These scripts usually manage several R scripts at once. 
+The scripts written in bash are used to manage several R scripts at once. 
+
+# Learning Performance
+The visualization and analysis of learning performance for the practice and encoding tasks is carried out in the script `scripts/analysis_files/01.cumAccByScene_learnVsEnc.R`. 
+
+# Computational Models
+**Parameter Recovery** is carried out by the bash script `01.runParameterRecovery.sh`. The scripts used are in the folder `parameter_recovery`. 
+There are four different files which perform recovery for the four different models considered in the paper. 
+These scripts use the simulation, likelihood, and fitting functions contained in the folders `simulation_functions`, `likelihood_functions`, and `fitting_functions`, respectively. 
+
+**Model Recovery** is performed by the `02.runModelRecover.R` script. 
+The script `03.plotConfusionMatrix.R` plots the confusion matrix after the model recovery process has been run. 
+
+**Model comparison** is performed by the script `05.modelComparison_comparefit.R`. 
+
+The script `06.fitModles.sh` fits the models and extract computationally-derived quantities. 
+
+The script `07.compare_simulatedvsempirical.R` compare the simulated data with the empirical data.  
+
+The file `01.cumAccByScene_learnVsEnc.R` creates cumulative accuracy
+by scene for learning and encoding separately. 
+
+The file `02.ModelFree_analyses_agg.R"
+# Model-derived PE and memory
+
+
+
+
+Model recovery scripts are in 
 
 Description of the folders and files:
-# computational_model
-Scripts related to computational modeling of the data
+# scripts
+Scripts related to analysis and modeling of the data
 ## analysis_files
 Files used to compute descriptive and inferential analyses on the data
 ### 01.cumAccByScene_learnVsEnc.R
 Scripts that calculates the cumulative accuracy by scene.
-### 02.ModelFree_analyses.R
+### 02.ModelFree_analyses_agg.R
 Analyses of participants' performance without computationally-derived values. 
 ### 03.analysis_model-derivedPE_memory.Rmd
 Analyses of the computatinally-derived PE

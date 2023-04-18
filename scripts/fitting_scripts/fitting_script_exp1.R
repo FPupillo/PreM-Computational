@@ -11,28 +11,28 @@ setwd(dirname(getwd()))
 rm(list=ls())
 cd<-getwd()
 # source the files with the function
-source(("computational_model/helper_functions/BICcompute.R"))
-source(("computational_model/helper_functions/searchGlobal.R"))
-source(("computational_model/helper_functions/softmax.R"))
-source(("computational_model/helper_functions/getFiles.R"))
-source(("computational_model/helper_functions/modelFunPhase2.R"))
-source(("computational_model/helper_functions/getResp.R"))
-source(("computational_model/helper_functions/getProbStrongWeak.R"))
-source(("computational_model/helper_functions/getx.R"))
-source(("computational_model/helper_functions/getU.R"))
-source(("computational_model/helper_functions/getQsPhase1.R"))
-source(("computational_model/helper_functions/var_murphy.R"))
-source(("computational_model/helper_functions/getobs.R"))
-source(("computational_model/helper_functions/getfeedb.R"))
+source(("scripts/helper_functions/BICcompute.R"))
+source(("scripts/helper_functions/searchGlobal.R"))
+source(("scripts/helper_functions/softmax.R"))
+source(("scripts/helper_functions/getFiles.R"))
+source(("scripts/helper_functions/modelFunPhase2.R"))
+source(("scripts/helper_functions/getResp.R"))
+source(("scripts/helper_functions/getProbStrongWeak.R"))
+source(("scripts/helper_functions/getx.R"))
+source(("scripts/helper_functions/getU.R"))
+source(("scripts/helper_functions/getQsPhase1.R"))
+source(("scripts/helper_functions/var_murphy.R"))
+source(("scripts/helper_functions/getobs.R"))
+source(("scripts/helper_functions/getfeedb.R"))
 
 # likelihood functions
-setwd("computational_model/likelihood_functions")
+setwd("scripts/likelihood_functions")
 likfun<-list.files()
 for (f in 1:length(likfun)){
   source(likfun[f])
 }
 # fitting functions
-setwd(paste(cd, "/computational_model/fitting_functions",sep=""))
+setwd(paste(cd, "/scripts/fitting_functions",sep=""))
 fitfun<-list.files()
 for (f in 1:length(fitfun)){
   source(fitfun[f])
@@ -70,7 +70,7 @@ mod<-"fLR_Instr"
   fittingfunction = get(paste("fit_", mod, sep=""))
   
   # getparameters
-  filename<-paste("exp1/outputs/group_level/computational_model",
+  filename<-paste("exp1/outputs/group_level/scripts",
                   "/ParameterEstimation.exp1.betalimit=10.initialQ=0.33.", mod, ".csv", sep="")
   
   # read the file with the parameters
@@ -118,9 +118,7 @@ mod<-"fLR_Instr"
     #---------------------------------------------------------------------------------------------#
     # we need to extract the Qs from phase1 as starting Qs for phase2
 
-      
-
-      
+    
     data1<-likelihoodfunction(Data=file1, alpha=alpha, beta=beta, 
                               print = 2 , initialQ=initialQ)    
 
@@ -183,11 +181,11 @@ mod<-"fLR_Instr"
   levels(DataAll$rec_session)<-c("ImmediateRec", "DelayedRec")
   
   # save the data
-  write.csv(dataAllPhase1, paste("computational_model/output_files/", "fittedData.", setup, ".Phase1.",mod, 
+  write.csv(dataAllPhase1, paste("scripts/output_files/", "fittedData.", setup, ".Phase1.",mod, 
                            ".csv", sep=""), row.names = F)
   
-  write.csv(DataAll, paste("computational_model/output_files/", "fittedData.", setup, ".Phase2.",mod, 
+  write.csv(DataAll, paste("scripts/output_files/", "fittedData.", setup, ".Phase2.",mod, 
                            ".csv", sep=""), row.names = F)
-}
+
 
 

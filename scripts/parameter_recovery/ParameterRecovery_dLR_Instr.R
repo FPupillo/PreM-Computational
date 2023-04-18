@@ -23,9 +23,9 @@ source(("helper_functions/getobs.R"))
 source(("helper_functions/getSceneCond.R"))
 source(("helper_functions/chooseBinomial.R"))
 source(("helper_functions/getProbStrongWeak.R"))
-source(("likelihood_functions/lik_OptimalBayesian.R"))
-source(("fitting_functions/fit_OptimalBayesian.R"))
-source(("simulation_functions/simulate_OptimalBayesian.R"))
+source(("likelihood_functions/lik_dLR_instr.R"))
+source(("fitting_functions/fit_dLR_instr.R"))
+source(("simulation_functions/simulate_dLR_instr.R"))
 
 # how many simulations?
 sims<-100
@@ -97,9 +97,9 @@ cl <- makeCluster(cores[1]-floor(cores[1]/3), outfile="") # to not overload your
 registerDoParallel(cl)
 
 # loop through several simuolations
-dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
+dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma'))  %dopar% {
   # simulate data
-  sim<-simulate_OptimalBayesian(T = trials, mu =  mu, beta =  betaran[j],
+  sim<-simulate_dLR_Instr(T = trials, mu =  mu, beta =  betaran[j],
                                 initialQ = initialQ)
   
   # change the a to response
@@ -112,7 +112,7 @@ dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
   # estimate parameters
   est<-searchGlobal(data = sim, alphaBound = alphaBound, betaBound = betaBound, 
                     startPoints = startPoints, initialQ = initialQ, 
-                    fittingfunction = fit_OptimalBayesian, model = "OptimalBayesian" )   # assign to the dataset
+                    fittingfunction = fit_OptimalBayesian, model = "dLR_Instr" )   # assign to the dataset
   data<-c( betaran[j],est$beta, est$BIC)
   #progress bar
   setTxtProgressBar(prb, j) 

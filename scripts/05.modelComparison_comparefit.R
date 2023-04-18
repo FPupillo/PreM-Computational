@@ -86,8 +86,6 @@ setup<-Args[1]
   
   # Model of interest
   MoI<- c("dLR_Instr","dfLR_Instr", "fLR_Instr", "fLR_Eval")
-  #BicAll<-BicAll[BicAll$model==MoI[1] | BicAll$model==MoI[2] 
-               #  | BicAll$model==MoI[3],]
   
   BicAll_wideBIC <- dcast(BicAll, PartNum ~ model, value.var=c("BIC"), 
                           fun.aggregate =sum)
@@ -123,13 +121,9 @@ setup<-Args[1]
   # detach the package
   detach("package:Rmisc", unload=TRUE)
   
-  # table<-BicAll %>%
-  # group_by(model)%>%
-  # summarise(Bic = mean(BIC), seBic = sd(BIC),
-  # LL=mean(LogLikel), seLL = sd(LogLikel))
   
   # print
-  write.csv(table,paste0("computational_model/output_files/TableBIC.LL.", 
+  write.csv(table,paste0("scripts/output_files/TableBIC.LL.", 
                          setup, ".csv"))
   
   # analyse
@@ -146,7 +140,6 @@ setup<-Args[1]
   
   for (j in 1: nrow(BicAll_wideBIC)){
     tryCatch({
-     # index<-which(BicAll_wideBIC[j,]==min(BicAll_wideBIC[j,(2:(length(files)))], na.rm=T))
       index<-which(BicAll_wideBIC[j,]==min(BicAll_wideBIC[j,MoI]))
       index2<-which(BicAll_wideBIC[j,]==unlist(sort(BicAll_wideBIC[j,MoI])[2]))
       
@@ -160,7 +153,6 @@ setup<-Args[1]
       
       }
     }, error = function(e) { print(paste("problem with number", j))}
-      # warning = function(f) { print(paste("warning with number", j))}) 
     )
   }
   
@@ -250,7 +242,7 @@ setup<-Args[1]
     scale_fill_viridis_d()
   
   
-  ggsave(paste("computational_model/figures/model_comparison_",setup, ".jpg", sep=""),
+  ggsave(paste("scripts/figures/model_comparison_",setup, ".jpg", sep=""),
          width = 12, height = 10)
   
   

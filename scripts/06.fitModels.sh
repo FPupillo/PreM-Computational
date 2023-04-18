@@ -13,6 +13,6 @@ do
 echo working on $setup
 
 # run the script
-Rscript computational_model/fitting_scripts/fitting_script_$setup.R 
+Rscript scripts/fitting_scripts/fitting_script_$setup.R 
 
 done
