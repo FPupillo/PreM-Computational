@@ -11,6 +11,7 @@ library(viridis)
 library(lme4)
 library(car)
 library(ggplot2)
+library(Rmisc)
 
 # source the scripts
 source("computational_model/helper_functions/dprime_thres.R")
@@ -176,7 +177,7 @@ gplot_exp1_pred_acc<-ggplot(data_agg_exp1_pred_acc,
     axis.text=element_text(size=28)
   )+
   theme(strip.text.x = element_text(size = 28))+
-  xlab("Contingency Condition")+
+  xlab("Contingency Condition of the Object Presented")+
   ggtitle("Experiment 1")+
   facet_wrap(.~prediction_accuracy)+
   theme(plot.title = element_text(hjust = 0.5))+
@@ -241,7 +242,7 @@ gplot_exp1_pred_cont<-ggplot(data_agg_exp1_pred_cont,#
     axis.text=element_text(size=20)
   )+
   theme(strip.text.x = element_text(size = 18))+
-  xlab("Predicted Contingency Condition")+
+  xlab("Contingency Condition of the Predicted Category")+
   ggtitle("Experiment 1")+
   facet_wrap(.~prediction_accuracy)+
   theme(plot.title = element_text(hjust = 0.5))+
@@ -343,7 +344,7 @@ gplot_exp2_pred_acc<-ggplot(data_agg_exp2_pred_acc,
     axis.title.y = element_text(size = 20),
     axis.text=element_text(size=20)
   )+
-  xlab("Contingency Condition")+
+  xlab("Contingency Condition of the Object Presented")+
   ggtitle("Experiment 2")+
   facet_wrap(.~prediction_accuracy)+
   theme(plot.title = element_text(hjust = 0.5))+
@@ -409,7 +410,7 @@ gplot_exp2_pred_cont<-ggplot(data_agg_exp2_pred_cont,
     axis.text=element_text(size=20)
   )+
   theme(strip.text.x = element_text(size = 18))+
-  xlab("Predicted Contingency Condition")+
+  xlab("Contingency Condition of the Predicted Category")+
   ggtitle("Experiment 2")+
   facet_wrap(.~prediction_accuracy)+
   theme(plot.title = element_text(hjust = 0.5))+

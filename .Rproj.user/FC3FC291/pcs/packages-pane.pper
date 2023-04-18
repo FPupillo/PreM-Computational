@@ -1,7 +1,7 @@
 {
     "installOptions": {
         "installFromRepository": true,
-        "libraryPath": "/home/francesco/R/x86_64-pc-linux-gnu-library/3.6",
+        "libraryPath": "/home/francesco/R/x86_64-pc-linux-gnu-library/4.2",
         "installDependencies": true
     }
 }

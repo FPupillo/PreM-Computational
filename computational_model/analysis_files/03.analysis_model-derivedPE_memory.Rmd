@@ -562,8 +562,6 @@ print(
   scale_fill_viridis_d()+
   theme(panel.spacing = unit(1, "lines"))
 
-
-
 ggsave(paste0(abs, "/figures/PEdistr_binned.png"), 
        width = 7, height = 7)
 
@@ -663,8 +661,11 @@ ggplot(allData, aes( x=num_subs_scene, y=id_acc))+
     axis.text=element_text(size=20)
   )+
   theme(legend.position = "none")+
-  xlab("Number of Subsequent Similar Contexts")+
+  xlab("Number of Subsequent Similar Scenes")+
   ylab("p(Hit)")
+
+ggsave(paste0(abs, "/figures/number_subs_scenes_mem.png"), 
+       width = 7, height = 7)
 
 # Analyze
 model_scenenum<-glmer(id_acc~num_subs_scene*trial_acc +(num_subs_scene*trial_acc|SubNum), 
