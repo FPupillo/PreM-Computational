@@ -27,9 +27,9 @@ The file `01.cumAccByScene_learnVsEnc.R` creates cumulative accuracy
 by scene for learning and encoding separately. 
 
 The file `02.ModelFree_analyses_agg.R"
+
 # Model-derived PE and memory
-
-
+The file `02_ModelFree_analyses.R` contains the scripts for visualizing and analyzing the data as a function of the condition of the predicted category. These analyses are included in the Supplementary Material
 
 
 Model recovery scripts are in 
