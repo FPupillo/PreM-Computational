@@ -11,7 +11,6 @@ rm(list=ls())
 library(foreach)
 library(doParallel)
 library(pracma)
-library(here)
 
 # source the files with the functions  
 source("helper_functions/getmu.R")
@@ -35,9 +34,6 @@ trials<-300
 
 # function that takes the arguments from the command line
 Args<-commandArgs(trailingOnly = T)
-
-# for debugging purposes
-#Args<-c(10, 1, 0.33, "exp1")
 
 # what are the contingencies?"
 mu<-getmu(Args[4])
@@ -63,12 +59,15 @@ initialQ<-matrix(initialQ, nrow = 6 ,ncol = ncol(mu))
 # create matrix and write it down a file
 model<-"dfLR_Instr"
 
+# set the upper boundary for the beta
 betalim<-10
 
+# create name for the file
 name<- paste("output_files/parameterRecovery.",setup, ".", model, ".", 
              "betalimit=",  betalim,  
              ".initialQ=", initialQ[1,1] , sep="")
 
+# Initialize an empty matrix
 data<-matrix(NA, nrow=1,ncol = 5)
 
 df<-data.frame(data)
@@ -99,9 +98,10 @@ registerDoParallel(cl)
 
 # loop through several simuolations
 dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
+  
   # simulate data
   sim<-simulate_dfLR_Instr(T = trials, mu =  mu,alpha = alpharan[j],  beta =  betaran[j],
-                                initialQ = initialQ)
+                           initialQ = initialQ)
   
   # change the a to response
   sim$response<-sim$a
@@ -110,12 +110,14 @@ dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
   
   # change the scene to scene cat
   sim<-getSceneCond(sim)
+  
   # estimate parameters
   est<-searchGlobal(data = sim, alphaBound = alphaBound, betaBound = betaBound, 
                     startPoints = startPoints, initialQ = initialQ, 
                     fittingfunction = fit_dfLR_Instr, model = "dfLR_Instr" )   # assign to the dataset
   
-  data<-c(  alpharan[j], est$alpha,betaran[j], est$beta, est$BIC)
+  data<-c(alpharan[j], est$alpha,betaran[j], est$beta, est$BIC)
+  
   #progress bar
   setTxtProgressBar(prb, j) 
   
@@ -127,31 +129,7 @@ dat<-foreach (j=1:sims, .combine=rbind,.packages=c('pracma', 'here'))  %dopar% {
   
   #write it
   write.csv(temp, paste0(name, ".csv"), row.names = F)
-  }
-# 
-# data<-data.frame(dat)
-# names(data)<-c( "simBeta", "fitBeta", "BIC")
-# 
-# model<-"OptimalBayesian"
-# name<- paste("output_files/parameterRecoveryRW", model, ".setup =", setup, "betalimit=",  betaBound[2],  
-#              ".initialQ=", initialQ[1] , sep="")
-# 
-# write.csv(data, paste(name, ".csv", sep=""))
-# 
-# #############################plot!
-# 
-# # plot beta
-# jpeg(paste("figures/",  "parameterRecovery", model, ".setup =", setup, ".Beta.",  betaBound[2],  ".initialQ=", initialQ[1], sep=""))
-# 
-# plot(data$simBeta,data$fitBeta, pch=19,main="Beta parameter",
-#      xlab = "simulated Beta", ylab = "fit Beta")
-# 
-# abline(lm(data$fitBeta~data$simBeta))
-# 
-# aty <- axTicks(1)
-# 
-# axis(1,at=aty,labels=aty)
-# 
-# dev.off()
-# 
+}
+
+# arrest the cluster
 stopCluster(cl)

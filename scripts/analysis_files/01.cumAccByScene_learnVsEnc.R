@@ -9,13 +9,12 @@ rm(list=ls())
 
 library(dplyr)
 library(ggplot2)
-#library(here)
 library(gridExtra) # for plotting
-library(viridis)#
+library(viridis)
 
 # retrieve functions
 cd<-getwd()
-setwd("computational_model")
+setwd("scripts")
 source("helper_functions/cumAccbyScene.R")
 source("helper_functions/getFiles.R")
 source("helper_functions/getcumAcc.R")
@@ -212,7 +211,7 @@ assign(paste0("plotID", e),
 
          #stat_summary(fun.y="mean",geom="line")+ylim(c(0,1))+
          #geom_ribbon(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), alpha=0.2, colour=NA)+
-         theme_light()+
+         theme_classic()+
          xlab("Trial Number by Condition")+
          ylab("Cumulative Accuracy")+
          #annotate(geom="text",  label=label,size=8,family="serif")+

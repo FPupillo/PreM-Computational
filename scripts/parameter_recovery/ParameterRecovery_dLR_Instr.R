@@ -11,7 +11,6 @@ rm(list=ls())
 library(foreach)
 library(doParallel)
 library(pracma)
-library(here)
 
 # source the files with the functions  
 source("helper_functions/getmu.R")
@@ -61,7 +60,7 @@ initialQ<-as.numeric(Args[3])
 initialQ<-matrix(initialQ, nrow = 6 ,ncol = ncol(mu))
 
 # create matrix and write it down a file
-model<-"OptimalBayesian"
+model<-"dLR_Instr"
 
 betalim<-10
 

@@ -16,7 +16,6 @@ library(hrbrthemes)
 # create an empty matrix
 mt<-as.data.frame(matrix(0, nrow = 4, ncol = 4))
 
-
 # function that takes the arguments from the command line
 Args<-commandArgs(trailingOnly = T)
 # the only argument is setup
@@ -24,7 +23,7 @@ setup<-Args[1]
 # now add all the files
 cd<-getwd()
 
-setwd("computational_model/temp")
+setwd("scripts/temp")
 # list files
 list<-list.files(pattern=paste0("^ModelRecovery.", setup, "."))
 # get names for the matrix
@@ -43,57 +42,57 @@ setwd(cd)
 #p(fit model | simulated model)
 
 getCM<-function(matrix){
-# initialise the matrix
-Matrixmean<-matrix(NA, nrow = ncol(matrix), ncol=ncol(matrix))
-
-# compute the percentages in each cell
-for (r in 1: ncol(matrix)){
-  sum<-sum(matrix[r,1:ncol(matrix)])
-  for (c in 1:ncol(matrix)){
-  Matrixmean[r, c]<-matrix[r,c]/sum
+  # initialise the matrix
+  Matrixmean<-matrix(NA, nrow = ncol(matrix), ncol=ncol(matrix))
+  
+  # compute the percentages in each cell
+  for (r in 1: ncol(matrix)){
+    sum<-sum(matrix[r,1:ncol(matrix)])
+    for (c in 1:ncol(matrix)){
+      Matrixmean[r, c]<-matrix[r,c]/sum
+    }
   }
-}
-
-Matrixmean<-data.frame(Matrixmean)
-names(Matrixmean)<-names(matrix)
-rownames(Matrixmean)<-names(matrix)
-
-# convert to matrix
-mat<-data.matrix(Matrixmean)
-# melt it to create a long dataset
-melted_matrix<-melt(mat)
-
-# plot it 
-# transpose matrix
-matrTrans<-t(Matrixmean)[,nrow(mat):1]
-
-melted_transmatr<-melt(matrTrans)
-
-return(melted_transmatr)
-
+  
+  Matrixmean<-data.frame(Matrixmean)
+  names(Matrixmean)<-names(matrix)
+  rownames(Matrixmean)<-names(matrix)
+  
+  # convert to matrix
+  mat<-data.matrix(Matrixmean)
+  # melt it to create a long dataset
+  melted_matrix<-melt(mat)
+  
+  # plot it 
+  # transpose matrix
+  matrTrans<-t(Matrixmean)[,nrow(mat):1]
+  
+  melted_transmatr<-melt(matrTrans)
+  
+  return(melted_transmatr)
+  
 }
 
 longmatr<-getCM(mt)
 
 p<-ggplot(longmatr, aes(x=(Var1), y=(Var2), fill=value))
 p+geom_tile(aes(fill = value)) +#
-geom_text(aes(label =round(value, 2)))+
+  geom_text(aes(label =round(value, 2)))+
   
   #theme_ipsum()+
   labs(y="", x = "")+
   theme_bw()+
   scale_x_discrete(position = "top") +
   theme(legend.title = element_blank())+
-#scale_fill_gradient(low = "blue", high = "yellow")
-scale_fill_viridis()
+  #scale_fill_gradient(low = "blue", high = "yellow")
+  scale_fill_viridis()
 
 # save the picture
-ggsave(file=paste0("computational_model/figures/ConfusionMatrix.", setup, ".jpg"),
+ggsave(file=paste0("scripts/figures/ConfusionMatrix.", setup, ".jpg"),
        width = 4, height = 2.5, units = "in")
 
 #------------------------------------------------------------------------------#
 # now the betaplus 1
-setwd("computational_model/temp")
+setwd("scripts/temp")
 # list files
 list<-list.files(pattern=paste0("^ModelRecoveryBetaPlus1.", setup, "."))
 # get names for the matrix
@@ -110,7 +109,6 @@ setwd(cd)
 
 #
 longmatr2<-getCM(mt)
-
 
 p2<-ggplot(longmatr2, aes(x=(Var1), y=(Var2), fill=value))
 p2+geom_tile(aes(fill = value)) +#
