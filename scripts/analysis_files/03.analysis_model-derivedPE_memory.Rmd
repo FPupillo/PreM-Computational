@@ -135,12 +135,31 @@ exp2$PE_level<-as.character(exp2$PE_level)
 exp1$scn_condition<-as.character(exp1$scn_condition)
 exp2$scn_condition<-as.character(exp2$scn_condition)
 
-# retrieve the learning rate
-
+# retrieve the learning rates
 # experiment 1
 # learning rate
-exp1lr<-fread(abs, 
+exp1lr<-fread(paste0(dirname(abs), "/exp1/outputs/group_level/computational_model/", 
                      "ParameterEstimation.exp1.betalimit=10.initialQ=0.33.fLR_Instr.csv"))
+
+# select the first three rows
+exp1lr<-exp1lr[,1:3]
+
+# change the name of the variable indicating the participant
+names(exp1lr)[1]<-"SubNum"
+
+exp1<-merge(exp1, exp1lr, by = "SubNum")
+
+# exp 2
+exp2lr<-fread(paste0(dirname(abs),"/exp2/outputs/group_level/computational_model/", 
+                     "ParameterEstimation.exp2.betalimit=10.initialQ=0.5.fLR_Instr.csv"))
+
+# select the first three rows
+exp2lr<-exp2lr[,1:3]
+
+# change the name of the variable indicating the participant
+names(exp2lr)[1]<-"SubNum"
+
+exp2<-merge(exp2, exp2lr, by = "SubNum")
 
 # add "2" in front of the subnum
 exp2$SubNum<-exp2$SubNum+200
@@ -236,6 +255,13 @@ allData$exp.c <- ifelse(allData$exp == "Experiment1", -0.5, 0.5)
 
 # center prediction outcome
 allData$trial_acc.c <- ifelse(allData$trial_acc == "Incorrect", -0.5, 0.5)
+
+# generalized linear mixed-effects
+PEbyAccAll.c<-glmer(id_acc~PEchoice.c*alpha.c*exp.c+(trial_acc.c*PEchoice.c|SubNum), family= binomial, 
+                   data = allData,
+                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+
+summary(PEbyAccAll.c)
 
 # exponentiate the beta for OR
 betas<-as.data.frame(summary(PEbyAccAll.c)$coefficients)
