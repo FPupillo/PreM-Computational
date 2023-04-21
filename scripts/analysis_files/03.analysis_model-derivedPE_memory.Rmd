@@ -257,11 +257,11 @@ allData$exp.c <- ifelse(allData$exp == "Experiment1", -0.5, 0.5)
 allData$trial_acc.c <- ifelse(allData$trial_acc == "Incorrect", -0.5, 0.5)
 
 # generalized linear mixed-effects
-PEbyAccAll.c<-glmer(id_acc~PEchoice.c*alpha.c*exp.c+(trial_acc.c*PEchoice.c|SubNum), family= binomial, 
-                   data = allData,
-                   control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
+PEbyAccAll.c<-glmer(id_acc~PE.c*trial_acc.c*alpha.c*exp.c+(trial_acc.c*PE.c|SubNum), family= binomial, 
+                    data = allData,
+                    control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
 
-summary(PEbyAccAll.c)
+summary(PEbyAccAll.c) 
 
 # exponentiate the beta for OR
 betas<-as.data.frame(summary(PEbyAccAll.c)$coefficients)
@@ -276,9 +276,6 @@ Anova(PEbyAccAll.c, type = "III")
 #save(CI, file = "CI.Rdata")
 # load the data
 load("S.CI.Rdata")
-
-# exponentiate them
-exp(CI)
 
 CI
 
@@ -298,37 +295,12 @@ PEbyAccAllNeg<-glmer(id_acc~PE+(PE|SubNum), family= binomial,
 
 summary(PEbyAccAllNeg)
 
-# is there an effect of condition?
-PEbyAccAllCond<-glmer(id_acc~PE*trial_acc*scn_condition+(trial_acc*PE|SubNum), family= binomial, 
-                      data = allData,
-                      control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=100000)))
-
-summary(PEbyAccAllCond)
-
-
-print(
-  ggplot(allData, aes( x=PE, y=id_acc))+
-    geom_line(stat="smooth",method = "glm", formula=y~x,method.args=list(family="binomial"), alpha=0.5)+
-    aes(colour = factor(SubNum), alpha=0.3)+
-    geom_smooth(method="glm",formula=y~x,method.args=list(family="binomial"), colour="black", se=T)+
-    theme(strip.text.x = element_text(size = 13))+ ylim(c(0,1))+
-    facet_grid(scn_condition~trial_acc+exp)+
-    theme_classic()+
-    theme(
-      plot.title = element_text(size = 22),
-      axis.title.x = element_text(size = 20),
-      axis.title.y = element_text(size = 20),
-      axis.text=element_text(size=20)
-    )+
-    theme(legend.position = "none")+
-    ylab("p(Hit)")
-)
 
 ```
 
 
 
-### Analyse with quantiles
+### Analyse with quantiles (contained in the supplementary material)
 ```{R}
 # create a vector
 binnedData<-vector()
