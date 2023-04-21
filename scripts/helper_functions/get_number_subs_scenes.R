@@ -22,7 +22,7 @@ get_number_subs_scenes<-function(df){
     data_sub$num_subs_scene<-NA
     
     # loop through the items
-    for (n in 1:nrow(data_sub)){
+    for (n in 1:(nrow(data_sub)-1)){
       
       # subset only the items that occur after that point
       data_subsequent<-data_sub[(n+1):nrow(data_sub),]
