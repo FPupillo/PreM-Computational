@@ -1,11 +1,6 @@
-# PREMUP Codebook
+Codebook
 
-Code book for the PREMUP data located under:
-
-~/pepe/2_Analysis_Folder/PIVOTAL/PREMUP/premup-<VERSION>/outputs/group_level/share/group_task-rec.csv
-
-
-I am including here only the more relevant variables. The rest of the information in the output file includes internal variables that are probably not useful for analysis. Do contact me if you want more info on those.
+I am including here only the more relevant variables. The rest of the information in the output file includes internal variables that are probably not useful for analysis. 
 
 obj_file	relative path and name of the object file
 enc_trialN	trial number in the encoding phase
